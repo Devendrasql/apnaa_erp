@@ -32,6 +32,21 @@
 **/.pytest_cache/
 *.py[cod]
 
+# Python venv (Windows layout) in embed-service
+embed-service/Include/
+embed-service/Lib/
+embed-service/Scripts/
+embed-service/share/
+embed-service/pyvenv.cfg
+
+# Python caches & installed pkgs
+embed-service/__pycache__/
+embed-service/*.egg-info/
+
+# If that "insightface" folder is an installed package, ignore it too:
+embed-service/insightface/
+
+
 # Environment files (keep only examples in git)
 .env
 .env.*
