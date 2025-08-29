@@ -1,0 +1,64 @@
+{
+  "name": "pharmacy-erp-frontend",
+  "version": "1.0.0",
+  "description": "Pharmacy ERP System Frontend",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.3",
+    "@mui/material": "^5.14.5",
+    "@mui/x-data-grid": "^6.11.0",
+    "@mui/x-date-pickers": "^6.11.0",
+    "axios": "^1.5.0",
+    "dayjs": "^1.11.9",
+    "formik": "^2.4.6",
+    "js-cookie": "^3.0.5",
+    "papaparse": "^5.5.3",
+    "react": "^18.2.0",
+    "react-barcode-reader": "^0.0.2",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.45.4",
+    "react-hot-toast": "^2.4.1",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.15.0",
+    "react-to-print": "^2.14.13",
+    "recharts": "^2.15.4",
+    "use-debounce": "^10.0.5",
+    "yup": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "vite": "^4.4.5"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

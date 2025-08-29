@@ -1,0 +1,74 @@
+﻿# --- Monorepo root .gitignore ---
+
+# Node / React / Vite
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+**/coverage/
+**/.cache/
+**/.parcel-cache/
+**/.turbo/
+*.tsbuildinfo
+
+# React Native (Android/iOS)
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/ios/Pods/
+**/ios/build/
+
+# Package manager caches (optional)
+**/.npm/
+**/.pnpm-store/
+**/.yarn/*cache*/
+
+# Python
+**/.venv/
+**/venv/
+**/env/
+**/__pycache__/
+**/.pytest_cache/
+*.py[cod]
+
+# Environment files (keep only examples in git)
+.env
+.env.*
+!.env.example
+
+# Uploads / generated assets
+uploads/
+backend/uploads/
+frontend/public/uploads/
+
+# Database dumps / local DB files (keep migrations & .sql you write)
+database/**/*.dump
+database/**/*.bak
+*.sqlite
+*.db
+
+# Logs
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Archives & large exported bundles
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+
+# extra folders
+**/zool/
+**/database/
