@@ -108,6 +108,19 @@ function withOrgId(payloadOrBase64) {
   return body;
 }
 
+// ... existing imports and setup
+
+// Add this below axios.defaults.* lines:
+export function setActiveBranchId(branchId) {
+  if (branchId == null || Number.isNaN(Number(branchId))) {
+    delete axios.defaults.headers.common['x-branch-id'];
+  } else {
+    axios.defaults.headers.common['x-branch-id'] = String(branchId);
+  }
+}
+
+// keep existing axios interceptors...
+
 // ------------------------------------------------------------
 // Axios Interceptors
 // ------------------------------------------------------------
@@ -273,6 +286,11 @@ export const api = {
   updateStdDiscount: (id, data) => axios.put(`/api/std-discounts/${id}`, data),
   deleteStdDiscount: (id) => axios.delete(`/api/std-discounts/${id}`),
 
+// UI menu bindings (only if your backend has these endpoints)
+  getMenuBindings: (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } }),
+  updateMenuBindings: (payload) => axios.put('/api/ui/menus/bindings', payload),
+
+
   // -----------------------------
   // FACE endpoints (org_id auto)
   // -----------------------------
@@ -420,6 +438,16 @@ export const deleteStdDiscount = api.deleteStdDiscount;
 export const enrollCustomerFace = api.enrollCustomerFace;
 export const identifyCustomerFace = api.identifyCustomerFace;
 
+// export const getMenuBindings = (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } });
+// export const updateMenuBindings = (payload) => axios.put('/api/ui/menus/bindings', payload);
+
+// UI menu bindings (only if your backend has these endpoints)
+api.getMenuBindings = (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } });
+api.updateMenuBindings = (payload) => axios.put('/api/ui/menus/bindings', payload);
+
+// named exports (optional)
+export const getMenuBindings = api.getMenuBindings;
+export const updateMenuBindings = api.updateMenuBindings;
 
 
 

@@ -47,6 +47,10 @@ const authMiddleware = async (req, res, next) => {
       }
       req.session = session; // optional, available to routes if needed
     }
+    // NEW: capture active branch from query or header for downstream RBAC checks
+    const qBranch = req.query.branchId != null ? Number(req.query.branchId) : undefined;
+    const hBranch = req.headers['x-branch-id'] != null ? Number(req.headers['x-branch-id']) : undefined;
+    req.branchId = qBranch ?? hBranch ?? null;
 
     // Load user profile & derive org_id from branches (users table has no org_id)
     const userQuery = `

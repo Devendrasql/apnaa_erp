@@ -35,6 +35,11 @@ import RolesPage from './pages/Roles';
 import MfgBrandManager from './pages/masters/MfgBrandManager';
 import ManufacturerImport from './pages/ManufacturerImport';
 import InvoicePrint from './pages/InvoicePrint';
+// imports
+import MenuAccessPage from './pages/MenuAccess';
+import AbacPoliciesPage from './pages/AbacPolicies';
+
+
 
 // NOTE: No route changes required for face recognition.
 // The Layout's AppBar injects a "Retrieve by Face" button on /pos.
@@ -106,6 +111,10 @@ function AppRoutes() {
         <Route path="/payments" element={<PrivateRoute><PaymentsPage /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+
+        <Route path="/admin/menu-access" element={<PrivateRoute><MenuAccessPage /></PrivateRoute>} />
+        <Route path="/admin/policies" element={<PrivateRoute><AbacPoliciesPage /></PrivateRoute>} />
+
         <Route path="/login" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>

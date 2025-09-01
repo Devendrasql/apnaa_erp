@@ -21,6 +21,9 @@ const { loadPermissions } = require('./middleware/permissions');
 
 // Routes
 const uiRoutes = require('./routes/ui');
+const meRoutes = require('./routes/me'); // NEW
+const adminMenusRoutes = require('./routes/adminMenus');
+const abacRoutes = require('./routes/abac');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const branchRoutes = require('./routes/branches');
@@ -121,6 +124,8 @@ protectedApi.use(generalApiLimiter, authMiddleware, loadPermissions);
 
 // -------------------- Protected routes --------------------
 app.use('/api/ui', protectedApi, uiRoutes);
+app.use('/api/abac', generalApiLimiter,authMiddleware, abacRoutes);
+app.use('/api/me', generalApiLimiter, authMiddleware, meRoutes); // NEW
 app.use('/api/dashboard', generalApiLimiter, authMiddleware, dashboardRoutes);
 app.use('/api/users', generalApiLimiter, authMiddleware, userRoutes);
 app.use('/api/branches', generalApiLimiter, authMiddleware, branchRoutes);

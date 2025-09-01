@@ -44,29 +44,29 @@ import { useAuth } from '../contexts/AuthContext';
 const TOKENS = {
   light: {
     primary: '#1a73e8',
-    appbar:  '#1a73e8',
+    appbar: '#1a73e8',
     appbarText: '#ffffff',
     bgDefault: '#f1f3f4',
-    bgPaper:   '#ffffff',
-    drawerBg:  '#ffffff',
-    text:  '#202124',
+    bgPaper: '#ffffff',
+    drawerBg: '#ffffff',
+    text: '#202124',
     muted: '#5f6368',
-    hover:    '#f1f3f4',
+    hover: '#f1f3f4',
     selected: '#e8f0fe',
-    border:   '#e0e3e7',
+    border: '#e0e3e7',
   },
   dark: {
     primary: '#8ab4f8',
-    appbar:  '#1f2937',
+    appbar: '#1f2937',
     appbarText: '#e8eaed',
     bgDefault: '#13171c',
-    bgPaper:   '#0f141a',
-    drawerBg:  '#0f141a',
-    text:  '#e8eaed',
+    bgPaper: '#0f141a',
+    drawerBg: '#0f141a',
+    text: '#e8eaed',
     muted: '#9aa0a6',
-    hover:    'rgba(255,255,255,0.06)',
+    hover: 'rgba(255,255,255,0.06)',
     selected: 'rgba(138,180,248,0.18)',
-    border:   'rgba(255,255,255,0.12)',
+    border: 'rgba(255,255,255,0.12)',
   },
 };
 
@@ -83,32 +83,37 @@ const STORAGE_KEYS = {
 // ----------------- Nav Definitions -----------------
 const PRIMARY = [
   { key: 'dashboard', label: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-  { key: 'pos',       label: 'POS',       icon: <PointOfSale />, path: '/pos' },
-  { key: 'sales',     label: 'Sales',     icon: <Assessment />, path: '/sales' },
+  { key: 'pos', label: 'POS', icon: <PointOfSale />, path: '/pos' },
+  { key: 'sales', label: 'Sales', icon: <Assessment />, path: '/sales' },
+  // ✅ NEW: Purchase Orders in the main nav
+  { key: 'purchase_orders', label: 'Purchase Orders', icon: <ShoppingCart />, path: '/purchase-orders', perm: 'procurement.po.view' },
   { key: 'purchases', label: 'Purchases', icon: <ShoppingCartCheckout />, path: '/purchases' },
-  { key: 'payments',  label: 'Payments',  icon: <Payment />, path: '/payments' },
+  { key: 'payments', label: 'Payments', icon: <Payment />, path: '/payments' },
   { key: 'inventory', label: 'Inventory', icon: <ShoppingCart />, path: '/inventory' },
   { key: 'stock-transfers', label: 'Stock Transfers', icon: <InventoryTwoTone />, path: '/stock-transfers' },
-  { key: 'reports',   label: 'Reports',   icon: <Assessment />, path: '/reports' },
+  { key: 'reports', label: 'Reports', icon: <Assessment />, path: '/reports' },
 ];
 
 const MASTERS = [
-  { key: 'branches',   label: 'Branches',     icon: <Storefront />, path: '/branches' },
-  { key: 'customers',  label: 'Customers',    icon: <People />,     path: '/customers' },
-  { key: 'suppliers',  label: 'Suppliers',    icon: <LocalShipping />, path: '/suppliers' },
-  { key: 'users',      label: 'Manage Users', icon: <ManageAccounts />, path: '/users' },
-  { key: 'roles',      label: 'Manage Roles', icon: <AdminPanelSettings />, path: '/roles' },
-  { key: 'settings',   label: 'Settings',     icon: <Settings />,   path: '/settings' },
+  { key: 'branches', label: 'Branches', icon: <Storefront />, path: '/branches' },
+  { key: 'customers', label: 'Customers', icon: <People />, path: '/customers' },
+  { key: 'suppliers', label: 'Suppliers', icon: <LocalShipping />, path: '/suppliers' },
+  { key: 'users', label: 'Manage Users', icon: <ManageAccounts />, path: '/users' },
+  { key: 'roles', label: 'Manage Roles', icon: <AdminPanelSettings />, path: '/roles' },
+  { key: 'settings', label: 'Settings', icon: <Settings />, path: '/settings' },
+  { key: 'menu_access', label: 'Menu Access', icon: <AdminPanelSettings />, path: '/admin/menu-access', perm: 'rbac.menu.manage' },
+  { key: 'abac_policies', label: 'ABAC Policies', icon: <Settings />, path: '/admin/policies', perm: 'abac.policy.manage' },
+
 ];
 
 const PRODUCT_MASTERS = [
-  { key: 'products',       label: 'All Products',      icon: <ProductsIcon fontSize="small" />, path: '/products' },
-  { key: 'categories',     label: 'Categories',        icon: <Category fontSize="small" />,     path: '/categories' },
-  { key: 'manufacturers',  label: 'Manufacturers',     icon: <Storefront fontSize="small" />,   path: '/manufacturers' },
-  { key: 'uom',            label: 'UOM',               icon: <UomIcon fontSize="small" />,      path: '/uom' },
-  { key: 'dosage-forms',   label: 'Dosage Forms',      icon: <DosageIcon fontSize="small" />,   path: '/dosage-forms' },
-  { key: 'racks',          label: 'Racks',             icon: <RackIcon fontSize="small" />,     path: '/racks' },
-  { key: 'std-discounts',  label: 'Standard Discounts',icon: <DiscountIcon fontSize="small" />, path: '/std-discounts' },
+  { key: 'products', label: 'All Products', icon: <ProductsIcon fontSize="small" />, path: '/products' },
+  { key: 'categories', label: 'Categories', icon: <Category fontSize="small" />, path: '/categories' },
+  { key: 'manufacturers', label: 'Manufacturers', icon: <Storefront fontSize="small" />, path: '/manufacturers' },
+  { key: 'uom', label: 'UOM', icon: <UomIcon fontSize="small" />, path: '/uom' },
+  { key: 'dosage-forms', label: 'Dosage Forms', icon: <DosageIcon fontSize="small" />, path: '/dosage-forms' },
+  { key: 'racks', label: 'Racks', icon: <RackIcon fontSize="small" />, path: '/racks' },
+  { key: 'std-discounts', label: 'Standard Discounts', icon: <DiscountIcon fontSize="small" />, path: '/std-discounts' },
 ];
 
 // =====================================================
@@ -116,7 +121,9 @@ const PRODUCT_MASTERS = [
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, accessibleBranches, currentBranch, switchBranch } = useAuth();
+  // const { user, logout, accessibleBranches, currentBranch, switchBranch } = useAuth();
+  const { user, logout, accessibleBranches, currentBranch, switchBranch, hasPermission, isElevated } = useAuth();
+
 
   // ----------------- Menus -----------------
   const [userMenuEl, setUserMenuEl] = useState(null);
@@ -200,11 +207,11 @@ const Layout = ({ children }) => {
   useEffect(() => {
     const p = location.pathname;
     const inMasters = [
-      '/branches','/customers','/suppliers','/users','/roles','/settings',
-      '/products','/categories','/manufacturers','/uom','/dosage-forms','/racks','/std-discounts'
+      '/branches', '/customers', '/suppliers', '/users', '/roles', '/settings',
+      '/products', '/categories', '/manufacturers', '/uom', '/dosage-forms', '/racks', '/std-discounts'
     ].some((x) => p.startsWith(x));
     const inPM = [
-      '/products','/categories','/manufacturers','/uom','/dosage-forms','/racks','/std-discounts'
+      '/products', '/categories', '/manufacturers', '/uom', '/dosage-forms', '/racks', '/std-discounts'
     ].some((x) => p.startsWith(x));
 
     if (inMasters && !mastersOpen) setMastersOpen(true);
@@ -282,142 +289,98 @@ const Layout = ({ children }) => {
     ].find(([p]) => isActive(p))?.[1] || 'Dashboard';
 
   // ----------------- Handlers -----------------
-  const handleUserMenuOpen   = (e) => setUserMenuEl(e.currentTarget);
-  const handleUserMenuClose  = () => setUserMenuEl(null);
-  const handleLogout         = () => { logout(); handleUserMenuClose(); navigate('/login'); };
-  const handleProfile        = () => { navigate('/profile'); handleUserMenuClose(); };
+  const handleUserMenuOpen = (e) => setUserMenuEl(e.currentTarget);
+  const handleUserMenuClose = () => setUserMenuEl(null);
+  const handleLogout = () => { logout(); handleUserMenuClose(); navigate('/login'); };
+  const handleProfile = () => { navigate('/profile'); handleUserMenuClose(); };
   const handleBranchMenuOpen = (e) => setBranchMenuEl(e.currentTarget);
-  const handleBranchMenuClose= () => setBranchMenuEl(null);
-  const handleBranchSelect   = (b) => { switchBranch(b); handleBranchMenuClose(); };
+  const handleBranchMenuClose = () => setBranchMenuEl(null);
+  const handleBranchSelect = (b) => { switchBranch(b); handleBranchMenuClose(); };
 
   const toggleDrawerCollapsed = () => setNavCollapsed((v) => !v);
   const openMobileDrawer = () => setMobileOpen(true);
   const closeMobileDrawer = () => setMobileOpen(false);
 
   const onMastersToggle = () => { if (navCollapsed) setNavCollapsed(false); setMastersOpen((v) => !v); };
-  const onPMToggle      = () => { if (navCollapsed) setNavCollapsed(false); setProductMastersOpen((v) => !v); };
+  const onPMToggle = () => { if (navCollapsed) setNavCollapsed(false); setProductMastersOpen((v) => !v); };
 
 
 
   // Keyboard Shortcuts: G,M,P,D and quick nav: 1(dashboard), 2(pos), 3(purchases)
-useEffect(() => {
-  const onKey = (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    const tag = (e.target && e.target.tagName) || '';
-    if (['INPUT','TEXTAREA','SELECT'].includes(tag) || e.isComposing) return;
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || e.isComposing) return;
 
-    const k = e.key.toLowerCase();
+      const k = e.key.toLowerCase();
 
-    // ---- Quick navigation (numbers) ----
-    if (k === '1') { // Dashboard
-      navigate('/dashboard');
-      if (!isDesktop) setMobileOpen(false);
-      e.preventDefault();
-      return;
-    }
-    if (k === '2') { // POS
-      navigate('/pos');
-      if (!isDesktop) setMobileOpen(false);
-      e.preventDefault();
-      return;
-    }
-    if (k === '3') { // Purchases
-      navigate('/purchases');
-      if (!isDesktop) setMobileOpen(false);
-      e.preventDefault();
-      return;
-    }
+      // ---- Quick navigation (numbers) ----
+      if (k === '1') { // Dashboard
+        navigate('/dashboard');
+        if (!isDesktop) setMobileOpen(false);
+        e.preventDefault();
+        return;
+      }
+      if (k === '2') { // POS
+        navigate('/pos');
+        if (!isDesktop) setMobileOpen(false);
+        e.preventDefault();
+        return;
+      }
+      if (k === '3') { // Purchases
+        navigate('/purchases');
+        if (!isDesktop) setMobileOpen(false);
+        e.preventDefault();
+        return;
+      }
 
-    // ---- Layout / theme toggles ----
-    if (k === 'g') {                         // collapse/expand drawer
-      if (isDesktop) {
-        setNavCollapsed((prev) => {
+      // ---- Layout / theme toggles ----
+      if (k === 'g') {                         // collapse/expand drawer
+        if (isDesktop) {
+          setNavCollapsed((prev) => {
+            const next = !prev;
+            localStorage.setItem('apnaaerp-drawer-collapsed', String(next));
+            return next;
+          });
+        } else {
+          setMobileOpen((prev) => !prev);
+        }
+        return;
+      }
+
+      if (k === 'm') {                         // Masters
+        if (navCollapsed) setNavCollapsed(false);
+        setMastersOpen((prev) => {
           const next = !prev;
-          localStorage.setItem('apnaaerp-drawer-collapsed', String(next));
+          localStorage.setItem('apnaaerp-masters-open', String(next));
           return next;
         });
-      } else {
-        setMobileOpen((prev) => !prev);
+        return;
       }
-      return;
-    }
 
-    if (k === 'm') {                         // Masters
-      if (navCollapsed) setNavCollapsed(false);
-      setMastersOpen((prev) => {
-        const next = !prev;
-        localStorage.setItem('apnaaerp-masters-open', String(next));
-        return next;
-      });
-      return;
-    }
+      if (k === 'p') {                         // Product Masters
+        if (navCollapsed) setNavCollapsed(false);
+        setProductMastersOpen((prev) => {
+          const next = !prev;
+          localStorage.setItem('apnaaerp-product-masters-open', String(next));
+          return next;
+        });
+        return;
+      }
 
-    if (k === 'p') {                         // Product Masters
-      if (navCollapsed) setNavCollapsed(false);
-      setProductMastersOpen((prev) => {
-        const next = !prev;
-        localStorage.setItem('apnaaerp-product-masters-open', String(next));
-        return next;
-      });
-      return;
-    }
+      if (k === 'd') {                         // Dark mode
+        setMode((prev) => {
+          const next = prev === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('apnaaerp-theme-mode', next);
+          return next;
+        });
+      }
+    };
 
-    if (k === 'd') {                         // Dark mode
-      setMode((prev) => {
-        const next = prev === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('apnaaerp-theme-mode', next);
-        return next;
-      });
-    }
-  };
-
-  window.addEventListener('keydown', onKey);
-  return () => window.removeEventListener('keydown', onKey);
-}, [isDesktop, navCollapsed, navigate]);
-
-  // // ----------------- Keyboard Shortcuts -----------------
-  // useEffect(() => {
-  //   const onKey = (e) => {
-  //     if (e.metaKey || e.ctrlKey || e.altKey) return;
-  //     const tag = (e.target && e.target.tagName) || '';
-  //     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
-
-  //     const k = e.key.toLowerCase();
-  //     if (k === 'g') {
-  //       if (isDesktop) {
-  //         setNavCollapsed((prev) => {
-  //           const next = !prev;
-  //           localStorage.setItem(STORAGE_KEYS.collapsed, String(next));
-  //           return next;
-  //         });
-  //       } else {
-  //         setMobileOpen((prev) => !prev);
-  //       }
-  //     } else if (k === 'm') {
-  //       if (navCollapsed) setNavCollapsed(false);
-  //       setMastersOpen((prev) => {
-  //         const next = !prev;
-  //         localStorage.setItem(STORAGE_KEYS.masters, String(next));
-  //         return next;
-  //       });
-  //     } else if (k === 'p') {
-  //       if (navCollapsed) setNavCollapsed(false);
-  //       setProductMastersOpen((prev) => {
-  //         const next = !prev;
-  //         localStorage.setItem(STORAGE_KEYS.pmasters, String(next));
-  //         return next;
-  //       });
-  //     } else if (k === 'd') {
-  //       setMode((prev) => {
-  //         const next = prev === 'dark' ? 'light' : 'dark';
-  //         localStorage.setItem(STORAGE_KEYS.theme, next);
-  //         return next;
-  //       });
-  //     }
-  //   };
-  //   window.addEventListener('keydown', onKey);
-  //   return () => window.removeEventListener('keydown', onKey);
-  // }, [isDesktop, navCollapsed]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isDesktop, navCollapsed, navigate]);
 
   // ----------------- Drawer Content (Hamburger lives here) -----------------
   const DrawerContent = (
@@ -434,7 +397,7 @@ useEffect(() => {
       </Toolbar>
       <Divider sx={{ borderColor: k.border }} />
 
-      <List dense subheader={<ListSubheader disableSticky sx={subheadSx}>MAIN</ListSubheader>} sx={{ pt: 0.5 }}>
+      {/* <List dense subheader={<ListSubheader disableSticky sx={subheadSx}>MAIN</ListSubheader>} sx={{ pt: 0.5 }}>
         {PRIMARY.map((it) => {
           const node = (
             <ListItemButton
@@ -455,6 +418,31 @@ useEffect(() => {
             </ListItem>
           );
         })}
+      </List> */}
+      <List dense subheader={<ListSubheader disableSticky sx={subheadSx}>MAIN</ListSubheader>} sx={{ pt: 0.5 }}>
+        {PRIMARY
+          // ✅ Only hide if a permission is specified and the user is NOT elevated and doesn’t have it
+          .filter((it) => !it.perm || isElevated || hasPermission(it.perm))
+          .map((it) => {
+            const node = (
+              <ListItemButton
+                sx={navItemSx(isActive(it.path))}
+                selected={isActive(it.path)}
+                onClick={() => {
+                  navigate(it.path);
+                  if (!isDesktop) closeMobileDrawer();
+                }}
+              >
+                <ListItemIcon>{it.icon}</ListItemIcon>
+                <ListItemText primary={it.label} sx={labelSx} />
+              </ListItemButton>
+            );
+            return (
+              <ListItem key={it.key} disablePadding>
+                {navCollapsed ? <Tooltip title={it.label} placement="right">{node}</Tooltip> : node}
+              </ListItem>
+            );
+          })}
       </List>
 
       <List subheader={<ListSubheader disableSticky sx={subheadSx}>MASTERS</ListSubheader>} sx={{ pt: 0 }}>
@@ -559,10 +547,10 @@ useEffect(() => {
           elevation={1}
           sx={{
             width: { sm: `calc(100% - ${navWidth}px)` },
-            ml:   { sm: `${navWidth}px` },
+            ml: { sm: `${navWidth}px` },
             color: TOKENS[mode].appbarText,
             bgcolor: TOKENS[mode].appbar,
-            transition: (th) => th.transitions.create(['width','margin'], { duration: th.transitions.duration.shorter }),
+            transition: (th) => th.transitions.create(['width', 'margin'], { duration: th.transitions.duration.shorter }),
           }}
         >
           <Toolbar>
@@ -676,7 +664,7 @@ useEffect(() => {
             minHeight: '100vh',
             bgcolor: TOKENS[mode].bgDefault,
             transition: (th) =>
-              th.transitions.create(['width','margin'], { duration: th.transitions.duration.shorter }),
+              th.transitions.create(['width', 'margin'], { duration: th.transitions.duration.shorter }),
           }}
         >
           {/* Spacer under AppBar without side gutters */}

@@ -41,7 +41,8 @@ const statusColors = {
 };
 
 const PurchaseOrdersPage = () => {
-  const { currentBranch } = useAuth(); // 2. Get the currently selected branch
+  // const { currentBranch } = useAuth(); // 2. Get the currently selected branch
+  const { currentBranch, hasPermission, isElevated } = useAuth(); // ✅ now we read permissions
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filters, setFilters] = useState({
@@ -124,18 +125,34 @@ const PurchaseOrdersPage = () => {
     return <Alert severity="error">Failed to load purchase orders. Please try again later.</Alert>;
   }
 
-  return (
+  // return (
+  //   <Box>
+  //     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+  //       <Typography variant="h4">Purchase Orders</Typography>
+  //       <Button
+  //         variant="contained"
+  //         startIcon={<Add />}
+  //         onClick={handleAddNew}
+  //         disabled={!currentBranch} // Disable button if no branch is selected
+  //       >
+  //         Create Purchase Order
+  //       </Button>
+  //     </Box>
+    return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Purchase Orders</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleAddNew}
-          disabled={!currentBranch} // Disable button if no branch is selected
-        >
-          Create Purchase Order
-        </Button>
+
+        {(isElevated || hasPermission('procurement.po.create')) && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleAddNew}
+            disabled={!currentBranch} // must have branch
+          >
+            Create Purchase Order
+          </Button>
+        )}
       </Box>
 
       <Paper sx={{ mb: 2, p: 2 }}>

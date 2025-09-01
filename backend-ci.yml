@@ -1,0 +1,35 @@
+name: backend-ci
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+      - name: Install deps
+        run: npm ci
+      - name: Lint
+        run: |
+          if npm run | grep -q "lint"; then npm run lint; else echo "no lint script"; fi
+      - name: Run tests
+        run: |
+          if npm run | grep -q "test"; then npm test --if-present; else echo "no test script"; fi
+      - name: Build (if script exists)
+        run: |
+          if npm run | grep -q "build"; then npm run build; else echo "no build script"; fi

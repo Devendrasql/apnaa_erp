@@ -25,6 +25,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const statusColors = {
     pending: 'warning',
@@ -37,7 +38,7 @@ const statusColors = {
 const PurchaseOrderDetailPage = () => {
   const { id: poId } = useParams();
   const queryClient = useQueryClient();
-
+  const { hasPermission, isElevated } = useAuth(); // ✅ permissions
   const { data: po, isLoading, error } = useQuery(
     ['purchaseOrderDetails', poId],
     () => api.getPurchaseOrderById(poId),
@@ -116,6 +117,7 @@ const PurchaseOrderDetailPage = () => {
       // FIX: Send the data with the correct key 'poItems'
       receiveStock({ poItems: receivedItems });
   };
+ const canReceive = isElevated || hasPermission('inventory.grn.post', 'procurement.po.approve');
 
   if (isLoading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
@@ -128,7 +130,7 @@ const PurchaseOrderDetailPage = () => {
   if (!po) {
     return <Typography>No Purchase Order data found.</Typography>;
   }
-
+  
   return (
     <Box>
       <Button component={RouterLink} to="/purchase-orders" startIcon={<ArrowBack />} sx={{ mb: 2 }}>
@@ -152,6 +154,11 @@ const PurchaseOrderDetailPage = () => {
 
       <Paper sx={{ p: 3, mt: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>Receive Stock</Typography>
+         {!canReceive && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            You don’t have permission to receive stock. Please contact an administrator.
+          </Alert>
+        )}
         <form onSubmit={handleSubmit(onReceiveSubmit)}>
             <TableContainer>
             <Table>
@@ -203,7 +210,7 @@ const PurchaseOrderDetailPage = () => {
             </Table>
             </TableContainer>
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="submit" variant="contained" startIcon={<CheckCircle />} disabled={isReceiving}>
+                <Button type="submit" variant="contained" startIcon={<CheckCircle />} disabled={!canReceive || isReceiving}>
                     {isReceiving ? 'Processing...' : 'Receive Selected Stock'}
                 </Button>
             </Box>
