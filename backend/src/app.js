@@ -4,68 +4,95 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 const path = require('path');
-const logger = require('../utils/logger'); // Assuming utils is moved to src/utils
-const { errorHandler, notFoundHandler } = require('./api/v2/middleware/errorHandler'); // Centralized error handlers
+// Note: This now points to your existing errorHandler, which we will move later.
+const { errorHandler, notFoundHandler } = require('../../middleware/errorHandler');
 
-// --- V2 API Routes ---
-const authRoutesV2 = require('./api/v2/features/auth/auth.routes');
-// Import other v2 routes as you create them according to the migration plan.
-// const salesRoutesV2 = require('./api/v2/features/sales/sales.routes');
+// --- V1 Routes (Your existing, old routes from the /routes folder) ---
+const authRoutesV1 = require('../../routes/auth');
+const userRoutesV1 = require('../../routes/users');
+const branchRoutesV1 = require('../../routes/branches');
+const productRoutesV1 = require('../../routes/products');
+const inventoryRoutesV1 = require('../../routes/inventory');
+const salesRoutesV1 = require('../../routes/sales');
+const purchaseRoutesV1 = require('../../routes/purchases');
+const customerRoutesV1 = require('../../routes/customers');
+const faceRoutesV1 = require('../../routes/face');
+const supplierRoutesV1 = require('../../routes/suppliers');
+const reportRoutesV1 = require('../../routes/reports');
+const categoryRoutesV1 = require('../../routes/categories');
+const purchaseOrderRoutesV1 = require('../../routes/purchaseOrders');
+const dashboardRoutesV1 = require('../../routes/dashboard');
+const paymentRoutesV1 = require('../../routes/payments');
+const stockTransferRoutesV1 = require('../../routes/stockTransfers');
+const settingsRoutesV1 = require('../../routes/settings');
+const roleRoutesV1 = require('../../routes/roles');
+const racksRouterV1 = require('../../routes/racks');
+const stdDiscountsRouterV1 = require('../../routes/stdDiscounts');
+const mfgBrandRoutesV1 = require('../../routes/mfgBrandRoutes');
+const uiRoutesV1 = require('../../routes/ui');
+const meRoutesV1 = require('../../routes/me');
+const adminMenusRoutesV1 = require('../../routes/adminMenus');
+const abacRoutesV1 = require('../../routes/abac');
+
+
+// --- V2 Routes (The new, clean, feature-based routes) ---
+const v2Routes = require('./api/v2/features'); // This is our new Route Aggregator
 
 const app = express();
 
 // --- Core Middleware ---
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
-
-const corsOptions = {
-    origin: ['http://localhost:3000', 'http://localhost:5173'], // Add your frontend origins
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-};
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// --- Static File Serving ---
-// Note: The path is relative to the project root, so we go up one level from src.
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-
-// --- Rate Limiting ---
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
-const generalApiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true, legacyHeaders: false });
-
-
-// --- Public Health Check Route ---
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ success: true, message: 'Backend OK', ts: new Date().toISOString() });
-});
-
+// --- Health Check ---
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 // ===================================================================================
-// === API ROUTE WIRING (SAFE, VERSIONED APPROACH)
+// === Route Registration: The key to a safe migration ===
 // ===================================================================================
 
-// --- Your Existing V1 API (Untouched for Zero Downtime) ---
-// We will import and use the old routes directly from your existing `server.js` logic.
-// This is a temporary step during migration.
-const v1Routes = require('../routes'); // A new file to consolidate all old route imports
-app.use('/api', v1Routes);
+// 1. Register all your OLD routes under the /api/ prefix.
+// Your current frontend will continue to work with these routes without any changes.
+app.use('/api/auth', authRoutesV1);
+app.use('/api/users', userRoutesV1);
+app.use('/api/branches', branchRoutesV1);
+app.use('/api/products', productRoutesV1);
+app.use('/api/inventory', inventoryRoutesV1);
+app.use('/api/sales', salesRoutesV1);
+app.use('/api/purchases', purchaseRoutesV1);
+app.use('/api/customers', customerRoutesV1);
+app.use('/api/face', faceRoutesV1);
+app.use('/api/suppliers', supplierRoutesV1);
+app.use('/api/reports', reportRoutesV1);
+app.use('/api/categories', categoryRoutesV1);
+app.use('/api/purchase-orders', purchaseOrderRoutesV1);
+app.use('/api/dashboard', dashboardRoutesV1);
+app.use('/api/payments', paymentRoutesV1);
+app.use('/api/stock-transfers', stockTransferRoutesV1);
+app.use('/api/settings', settingsRoutesV1);
+app.use('/api/roles', roleRoutesV1);
+app.use('/api/racks', racksRouterV1);
+app.use('/api/std-discounts', stdDiscountsRouterV1);
+app.use('/api/mfg-brands', mfgBrandRoutesV1);
+app.use('/api/ui', uiRoutesV1);
+app.use('/api/me', meRoutesV1);
+app.use('/api/adminMenus', adminMenusRoutesV1);
+app.use('/api/abac', abacRoutesV1);
 
+// 2. Register ALL of our NEW V2 routes under the /api/v2/ prefix.
+// This allows us to build and test the new structure safely.
+app.use('/api/v2', v2Routes);
 
-// --- New, Secure V2 API ---
-// All new development happens here.
-app.use('/api/v2/auth', authLimiter, authRoutesV2);
-// app.use('/api/v2/sales', generalApiLimiter, salesRoutesV2); // Example
+// ===================================================================================
 
-
-// --- Error Handling Middleware (MUST BE LAST) ---
+// --- Error Handling Middleware (must be last) ---
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 module.exports = app;
+
