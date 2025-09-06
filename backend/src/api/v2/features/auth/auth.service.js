@@ -1,14 +1,19 @@
 'use strict';
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { executeQuery } = require('../../../../utils/database');
-const logger = require('../../../../utils/logger');
+// ===================================================================================
+// === THE FIX ===
+// The error was because the path was incorrect. This is the correct relative path
+// to get from this file, up five levels to the `backend` root, and then into the `utils` folder.
+const { executeQuery } = require('../../../../../utils/database');
+const logger = require('../../../../../utils/logger');
 const {
-    createSession,
-    rotateRefreshToken,
-    revokeSessionBySid,
-    revokeAllSessionsForUser,
-} = require('../../../../repositories/sessions');
+  createSession,
+  rotateRefreshToken,
+  revokeSessionBySid,
+  revokeAllSessionsForUser,
+} = require('../../../../../repositories/sessions');
+// ===================================================================================
 
 // Helper to sign JWT
 function signAccessToken({ userId, sid }) {

@@ -1,7 +1,7 @@
 'use strict';
 const AuthService = require('./auth.service');
 const { validationResult } = require('express-validator');
-const logger = require('../../../../utils/logger');
+const logger = require('../../../../../utils/logger');
 
 class AuthController {
     async login(req, res, next) {

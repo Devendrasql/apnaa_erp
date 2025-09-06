@@ -2,10 +2,13 @@
 require('dotenv').config();
 
 const http = require('http');
-// This path is correct assuming server.js is in the root `backend` folder
-const { connectDatabase } = require('./src/utils/database');
-const logger = require('./src/utils/logger');
-// This is the most important change: we import the configured app from src/app.js
+// ===================================================================================
+// === THE FIX ===
+// The path is now corrected. From `server.js` in the root, it correctly
+// looks for the `utils` folder in the same directory.
+const { connectDatabase } = require('./utils/database');
+const logger = require('./utils/logger');
+// ===================================================================================
 const app = require('./src/app');
 
 const server = http.createServer(app);
