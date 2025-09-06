@@ -16,16 +16,16 @@ const createSupplier = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
         }
 
-        const { name, code, contact_person, email, phone, address, city, state, pincode, gst_number, drug_license } = req.body;
+        const { name, code, contact_person, email, phone, address, city, state, pincode, gst_number } = req.body;
 
         const query = `
             INSERT INTO suppliers 
-            (name, code, contact_person, email, phone, address, city, state, pincode, gst_number, drug_license) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, code, contact_person, email, phone, address, city, state, pincode, gst_number) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const params = [
             name, code, contact_person || null, email || null, phone || null, address || null, 
-            city || null, state || null, pincode || null, gst_number || null, drug_license || null
+            city || null, state || null, pincode || null, gst_number || null
         ];
 
         const result = await executeQuery(query, params);
@@ -126,17 +126,17 @@ const getSupplierById = async (req, res, next) => {
 const updateSupplier = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, code, contact_person, email, phone, address, city, state, pincode, gst_number, drug_license, is_active } = req.body;
+        const { name, code, contact_person, email, phone, address, city, state, pincode, gst_number, is_active } = req.body;
 
         const query = `
             UPDATE suppliers SET 
             name = ?, code = ?, contact_person = ?, email = ?, phone = ?, address = ?, 
-            city = ?, state = ?, pincode = ?, gst_number = ?, drug_license = ?, is_active = ?
+            city = ?, state = ?, pincode = ?, gst_number = ?, is_active = ?
             WHERE id = ? AND is_deleted = FALSE
         `;
         const params = [
             name, code, contact_person, email, phone, address, city, state, 
-            pincode, gst_number, drug_license, is_active, id
+            pincode, gst_number, is_active, id
         ];
 
         const result = await executeQuery(query, params);

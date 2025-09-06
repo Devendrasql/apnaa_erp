@@ -16,13 +16,38 @@ const createCategory = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
         }
 
-        const { name, description, parent_id } = req.body;
+        const { name, parent_id, is_active } = req.body;
+        const orgId = Number(req.user?.org_id || 1);
 
+        // Generate a unique category code per org (e.g., first 3 letters + sequence)
+        const letters = String(name || '')
+          .normalize('NFKD')
+          .replace(/[^A-Za-z]/g, '')
+          .toUpperCase();
+        const base = (letters || 'CAT').slice(0, 3).padEnd(3, 'X');
+
+        let code = base;
+        let exists = await executeQuery(
+          'SELECT id FROM categories WHERE org_id = ? AND code = ? LIMIT 1',
+          [orgId, code]
+        );
+        if (exists.length) {
+          for (let i = 1; i < 1000; i++) {
+            const tryCode = `${base}${String(i).padStart(3, '0')}`;
+            const rows = await executeQuery(
+              'SELECT id FROM categories WHERE org_id = ? AND code = ? LIMIT 1',
+              [orgId, tryCode]
+            );
+            if (!rows.length) { code = tryCode; break; }
+          }
+        }
+
+        // Insert with required code column
         const query = `
-            INSERT INTO categories (name, description, parent_id) 
-            VALUES (?, ?, ?)
+            INSERT INTO categories (org_id, code, name, parent_id, is_active)
+            VALUES (?, ?, ?, ?, ?)
         `;
-        const params = [name, description || null, parent_id || null];
+        const params = [orgId, code, name, parent_id || null, is_active === false ? 0 : 1];
 
         const result = await executeQuery(query, params);
         
@@ -43,14 +68,15 @@ const createCategory = async (req, res, next) => {
  */
 const getAllCategories = async (req, res, next) => {
     try {
+        const orgId = Number(req.user?.org_id || 1);
         const query = `
             SELECT c1.*, c2.name as parent_name
             FROM categories c1
             LEFT JOIN categories c2 ON c1.parent_id = c2.id
-            WHERE c1.is_deleted = FALSE 
+            WHERE c1.is_deleted = FALSE AND c1.org_id = ?
             ORDER BY c1.name ASC
         `;
-        const categories = await executeQuery(query);
+        const categories = await executeQuery(query, [orgId]);
 
         res.status(200).json({ 
             success: true, 
@@ -72,14 +98,15 @@ const getAllCategories = async (req, res, next) => {
 const updateCategory = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, description, parent_id, is_active } = req.body;
+        const { name, parent_id, is_active } = req.body;
 
+        const orgId = Number(req.user?.org_id || 1);
         const query = `
             UPDATE categories SET 
-            name = ?, description = ?, parent_id = ?, is_active = ?
-            WHERE id = ? AND is_deleted = FALSE
+            name = ?, parent_id = ?, is_active = ?
+            WHERE id = ? AND org_id = ? AND is_deleted = FALSE
         `;
-        const params = [name, description || null, parent_id || null, is_active, id];
+        const params = [name, parent_id || null, is_active === false ? 0 : 1, id, orgId];
 
         const result = await executeQuery(query, params);
 

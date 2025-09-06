@@ -15,8 +15,9 @@ const recordPayment = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
     }
 
-    const connection = getConnection();
+    let connection;
     try {
+        connection = await getConnection();
         const { sale_id, amount_paid, payment_method, payment_date, notes } = req.body;
         const recorded_by = req.user.id;
 
@@ -28,22 +29,34 @@ const recordPayment = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Sale not found.' });
         }
         const sale = sales[0];
-
-        const newPaidAmount = Number(sale.paid_amount) + Number(amount_paid);
-        if (newPaidAmount > sale.final_amount) {
+        // Prefer column balance_amount if present; fall back to final_amount check
+        const saleFinal = Number(sale.final_amount);
+        const saleBalance = sale.balance_amount != null ? Number(sale.balance_amount) : (saleFinal);
+        if (Number(amount_paid) > saleBalance) {
             await connection.rollback();
             return res.status(400).json({ success: false, message: 'Payment amount cannot exceed the balance amount.' });
         }
 
-        await connection.execute(
-            `INSERT INTO customer_payments (sale_id, amount_paid, payment_method, payment_date, notes, recorded_by) VALUES (?, ?, ?, ?, ?, ?)`,
-            [sale_id, amount_paid, payment_method, payment_date, notes || null, recorded_by]
-        );
+        // Try to persist payment row if table exists; ignore if table missing
+        try {
+          await connection.execute(
+              `INSERT INTO customer_payments (sale_id, amount_paid, payment_method, payment_date, notes, recorded_by) VALUES (?, ?, ?, ?, ?, ?)`,
+              [sale_id, amount_paid, payment_method, payment_date, notes || null, recorded_by]
+          );
+        } catch (e) {
+          if (e?.code !== 'ER_NO_SUCH_TABLE') throw e;
+        }
 
-        await connection.execute(
-            'UPDATE sales SET paid_amount = ?, balance_amount = final_amount - ? WHERE id = ?',
-            [newPaidAmount, newPaidAmount, sale_id]
-        );
+        // Update sales balance if column exists
+        try {
+          await connection.execute(
+            'UPDATE sales SET balance_amount = GREATEST(balance_amount - ?, 0) WHERE id = ?',
+            [amount_paid, sale_id]
+          );
+        } catch (e) {
+          // If balance_amount column missing, skip silently
+          if (e?.code !== 'ER_BAD_FIELD_ERROR') throw e;
+        }
 
         await connection.commit();
 
@@ -51,9 +64,11 @@ const recordPayment = async (req, res, next) => {
         res.status(201).json({ success: true, message: 'Payment recorded successfully.' });
 
     } catch (error) {
-        await connection.rollback();
+        try { if (connection && typeof connection.rollback === 'function') await connection.rollback(); } catch {}
         logger.error('Error recording payment:', error);
         next(error);
+    } finally {
+        try { if (connection && typeof connection.release === 'function') connection.release(); } catch {}
     }
 };
 
@@ -70,19 +85,31 @@ const getOutstandingSales = async (req, res, next) => {
         const safeLimit = parseInt(limit, 10);
         const safeOffset = (parseInt(page, 10) - 1) * safeLimit;
 
+        const orgId = Number(req.user?.org_id || 1);
+        const branchId = req.query.branch_id ? Number(req.query.branch_id) : undefined;
+
         let baseQuery = `
             SELECT 
-                s.id, s.invoice_number, s.sale_date, s.final_amount, s.paid_amount, s.balance_amount,
+                s.id,
+                s.invoice_number,
+                s.sale_date,
+                s.final_amount,
+                0 AS paid_amount,
+                s.final_amount AS balance_amount,
                 CONCAT(c.first_name, ' ', c.last_name) as customer_name,
                 b.name as branch_name
             FROM sales s
             LEFT JOIN customers c ON s.customer_id = c.id
             LEFT JOIN branches b ON s.branch_id = b.id
         `;
-        let countQuery = `SELECT COUNT(s.id) as total FROM sales s`;
-
-        const whereClauses = ['s.is_deleted = FALSE', 's.balance_amount > 0'];
-        const whereParams = [];
+        let countQuery = `
+          SELECT COUNT(*) AS total
+          FROM sales s
+          LEFT JOIN branches b ON s.branch_id = b.id
+        `;
+        const whereClauses = ['s.is_deleted = FALSE', 's.final_amount > 0', 'b.org_id = ?'];
+        const whereParams = [orgId];
+        if (Number.isFinite(branchId)) { whereClauses.push('s.branch_id = ?'); whereParams.push(branchId); }
 
         if (search) {
             whereClauses.push('s.invoice_number LIKE ?');

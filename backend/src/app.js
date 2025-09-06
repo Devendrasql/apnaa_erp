@@ -1,11 +1,15 @@
 'use strict';
 
 const express = require('express');
+const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const requestId = require('../middleware/requestId');
+const httpLogger = require('../middleware/httpLogger');
+const { executeQuery } = require('../utils/database');
 
 // ===================================================================================
 // === THE FIX ===
@@ -51,6 +55,8 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(cors());
+app.use(requestId());
+app.use(httpLogger());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -59,8 +65,22 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
 const generalApiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 });
 
-// --- Health Check ---
+// --- Health, Readiness, Version ---
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/ready', async (req, res) => {
+  try { await executeQuery('SELECT 1 AS ok'); return res.status(200).json({ status: 'ready' }); }
+  catch { return res.status(503).json({ status: 'not_ready' }); }
+});
+app.get('/api/version', (req, res) => {
+  try {
+    // Read backend package.json for name/version
+    // eslint-disable-next-line global-require
+    const pkg = require('../package.json');
+    res.status(200).json({ name: pkg.name, version: pkg.version, env: process.env.NODE_ENV || 'development' });
+  } catch {
+    res.status(200).json({ name: 'pharmacy-erp-backend', version: process.env.BUILD_VERSION || '0.0.0', env: process.env.NODE_ENV || 'development' });
+  }
+});
 
 // ===================================================================================
 // === Route Registration: Running both APIs in parallel ===
@@ -99,6 +119,16 @@ app.use('/api/abac', generalApiLimiter, authMiddleware, loadPermissions, abacRou
 // 3. Register ALL of our NEW V2 routes under the /api/v2/ prefix.
 // This allows us to build and test the new structure safely.
 app.use('/api/v2', v2Routes);
+
+// Serve OpenAPI (v2) spec as raw YAML for tooling/clients
+app.get('/api/v2/openapi', (req, res) => {
+  try {
+    const spec = fs.readFileSync(path.join(__dirname, 'api', 'v2', 'openapi.yaml'), 'utf8');
+    res.type('text/yaml').send(spec);
+  } catch (e) {
+    res.status(404).json({ error: 'OpenAPI spec not found' });
+  }
+});
 
 // ===================================================================================
 

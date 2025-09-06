@@ -1,29 +1,31 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { body } = require('express-validator');
 const AuthController = require('./auth.controller');
-// We will create this new middleware soon
-// const { verifyToken } = require('../../../middleware/authJwt');
+const { authMiddleware } = require('../../../../../middleware/auth');
+
+// Tighter limiter for auth endpoints
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
 
 // Public routes
-router.post('/login', [
+router.post('/login', authLimiter, [
     body('username').notEmpty(),
     body('password').notEmpty()
 ], AuthController.login);
 
-router.post('/refresh', [
+router.post('/refresh', authLimiter, [
     body('refreshToken').notEmpty()
 ], AuthController.refreshToken);
 
-// Protected routes (will need middleware later)
-router.post('/change-password', [
-    // verifyToken,
+// Protected routes
+router.post('/change-password', authMiddleware, [
     body('currentPassword').notEmpty(),
     body('newPassword').isLength({ min: 6 })
 ], AuthController.changePassword);
 
-router.post('/logout', /* verifyToken, */ AuthController.logout);
-router.post('/logout-all', /* verifyToken, */ AuthController.logoutAll);
+router.post('/logout', authMiddleware, AuthController.logout);
+router.post('/logout-all', authMiddleware, AuthController.logoutAll);
 
 module.exports = router;
 

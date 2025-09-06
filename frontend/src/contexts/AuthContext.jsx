@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import Cookies from 'js-cookie';
-import api from '../services/api';
+import api, { getUIBootstrap, setActiveBranchId, login as loginApi } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -122,27 +122,35 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    const response = await api.login(credentials);
+    // v2 login
+    const response = await loginApi(credentials);
     const { user: u, accessToken, refreshToken } = response.data.data;
 
-    // set base user + branches
-    setUser(u);
-    setAccessibleBranches(u.accessibleBranches || []);
-    const defBranch = (u.accessibleBranches || []).find((b) => b.id === u.default_branch_id)
-      || (u.accessibleBranches || [])[0]
-      || null;
-    setCurrentBranch(defBranch || null);
-
-    // cookies
-    Cookies.set('user', JSON.stringify(u), { expires: 1 });
+    // Persist tokens
     Cookies.set('accessToken', accessToken, { expires: 1 });
-    Cookies.set('refreshToken', refreshToken, { expires: 7 });
-    Cookies.set('accessibleBranches', JSON.stringify(u.accessibleBranches || []), { expires: 1 });
+    if (refreshToken) Cookies.set('refreshToken', refreshToken, { expires: 7 });
+
+    // Fetch bootstrap (menus, permissions, features) after login
+    const boot = await getUIBootstrap();
+    const data = boot?.data?.data || {};
+    const mergedUser = { ...(data.me || u) };
+
+    // Set user + branches
+    setUser(mergedUser);
+    const branches = mergedUser.accessibleBranches || [];
+    setAccessibleBranches(branches);
+    const defBranch = branches.find((b) => b.id === mergedUser.default_branch_id) || branches[0] || null;
+    setCurrentBranch(defBranch || null);
+    if (defBranch) setActiveBranchId(defBranch.id);
+
+    // Cookies for persistence
+    Cookies.set('user', JSON.stringify(mergedUser), { expires: 1 });
+    Cookies.set('accessibleBranches', JSON.stringify(branches), { expires: 1 });
     if (defBranch) Cookies.set('currentBranch', JSON.stringify(defBranch), { expires: 1 });
 
-    // permissions (await before returning so POS gets it immediately)
-    await hydratePermissions(u);
-    return u;
+    // Hydrate permissions (fallback in case bootstrap didn’t include)
+    await hydratePermissions(mergedUser);
+    return mergedUser;
   };
 
   const logout = () => {
@@ -160,6 +168,7 @@ export const AuthProvider = ({ children }) => {
   const switchBranch = (branch) => {
     setCurrentBranch(branch);
     Cookies.set('currentBranch', JSON.stringify(branch), { expires: 1 });
+    setActiveBranchId(branch?.id);
     window.location.reload();
   };
 
@@ -213,4 +222,3 @@ const value = useMemo(
 // };
 
 export const useAuth = () => useContext(AuthContext);
-

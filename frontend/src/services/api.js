@@ -14,8 +14,9 @@ import Papa from 'papaparse'; // kept if you use it elsewhere
 // ------------------------------------------------------------
 // Base URL
 // ------------------------------------------------------------
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const BASE_URL = import.meta.env.VITE_API_URL || window.location.origin || 'http://localhost:3002';
 axios.defaults.baseURL = BASE_URL;
+const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v2';
 
 // ------------------------------------------------------------
 // Helpers
@@ -310,7 +311,6 @@ export const api = {
 export default api;
 
 // Auth
-export const login = api.login;
 export const logout = api.logout;
 export const changePassword = api.changePassword;
 
@@ -418,9 +418,16 @@ export const getAllPermissions = api.getAllPermissions;
 // export const createPermission = api.createPermission;
 
 // UI helpers (menus / permissions / features)
-export const getUIMenus = () => axios.get('/api/ui/menus');
-export const getUIPermissions = () => axios.get('/api/ui/permissions');
-export const getUIFeatures = () => axios.get('/api/ui/features');
+export const getUIMenus = () => axios.get(`${API_PREFIX}/ui/menus`);
+export const getUIPermissions = () => axios.get(`${API_PREFIX}/ui/permissions`);
+export const getUIFeatures = () => axios.get(`${API_PREFIX}/ui/features`);
+export const getUIBootstrap = () => axios.get(`${API_PREFIX}/ui/bootstrap`);
+
+// Auth (v2)
+export const login = (payload) => axios.post(`${API_PREFIX}/auth/login`, payload);
+export const refresh = (payload) => axios.post(`${API_PREFIX}/auth/refresh`, payload);
+export const logoutApi = () => axios.post(`${API_PREFIX}/auth/logout`);
+export const logoutAll = () => axios.post(`${API_PREFIX}/auth/logout-all`);
 
 // Racks
 export const getRacks = api.getRacks;
