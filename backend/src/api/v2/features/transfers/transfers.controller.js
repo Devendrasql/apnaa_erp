@@ -31,6 +31,10 @@ class TransfersController {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       const requested_by = Number(req.user?.id);
+      const userBranchId = req.branchId ?? null;
+      if (!userBranchId || Number(userBranchId) !== Number(req.body?.from_branch_id)) {
+        return res.status(403).json({ success: false, message: 'Only the source branch can create a transfer.' });
+      }
       const { transfer_number } = await Service.createTransfer(req.body, requested_by);
       res.status(201).json({ success: true, message: 'Stock transfer request created successfully.', data: { transfer_number } });
     } catch (e) { next(e); }
@@ -41,8 +45,10 @@ class TransfersController {
       const id = Number(req.params.id);
       const { status } = req.body || {};
       const userId = Number(req.user?.id);
-      const result = await Service.updateStatus(id, status, userId);
+      const userBranchId = req.branchId ?? null;
+      const result = await Service.updateStatus(id, status, userId, userBranchId);
       if (result?.notFound) return res.status(404).json({ success: false, message: 'Stock Transfer not found.' });
+      if (result?.forbidden) return res.status(403).json({ success: false, message: result.forbidden });
       if (result?.invalid) return res.status(400).json({ success: false, message: `Cannot change status from ${result.from} to ${status}.` });
       res.json({ success: true, message: `Transfer status updated to ${status}.` });
     } catch (e) { next(e); }
@@ -50,4 +56,3 @@ class TransfersController {
 }
 
 module.exports = new TransfersController();
-

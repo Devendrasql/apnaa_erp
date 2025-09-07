@@ -8,7 +8,7 @@ async function listTransfers({ page = 1, limit = 20, from_branch_id, to_branch_i
   const offset = (p - 1) * l;
   let base = `
     SELECT st.id, st.transfer_number, st.from_branch_id, fb.name AS from_branch_name,
-           st.to_branch_id, tb.name AS to_branch_name, st.status, st.total_items, st.created_at
+           st.to_branch_id, tb.name AS to_branch_name, st.status, st.created_at
       FROM stock_transfers st
       JOIN branches fb ON fb.id = st.from_branch_id
       JOIN branches tb ON tb.id = st.to_branch_id`;
@@ -26,10 +26,16 @@ async function listTransfers({ page = 1, limit = 20, from_branch_id, to_branch_i
 
 async function getTransferById(id) {
   const [transfer] = await executeQuery(
-    `SELECT st.*, fb.name as from_branch_name, tb.name as to_branch_name
+    `SELECT st.*, 
+            fb.name as from_branch_name, 
+            tb.name as to_branch_name,
+            ua.username AS approved_by_name,
+            ur.username AS received_by_name
        FROM stock_transfers st
        JOIN branches fb ON st.from_branch_id = fb.id
        JOIN branches tb ON st.to_branch_id = tb.id
+  LEFT JOIN users ua ON ua.id = st.approved_by
+  LEFT JOIN users ur ON ur.id = st.received_by
       WHERE st.id = ? AND st.is_deleted = FALSE`,
     [id]
   );
@@ -53,9 +59,9 @@ async function createTransfer({ from_branch_id, to_branch_id, notes, items }, re
     await conn.beginTransaction();
     const transfer_number = `ST-${Date.now()}`;
     const [ins] = await conn.execute(
-      `INSERT INTO stock_transfers (transfer_number, from_branch_id, to_branch_id, notes, total_items, requested_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [transfer_number, from_branch_id, to_branch_id, notes || null, items.length, requested_by]
+      `INSERT INTO stock_transfers (transfer_number, from_branch_id, to_branch_id, notes, requested_by)
+       VALUES (?, ?, ?, ?, ?)`,
+      [transfer_number, from_branch_id, to_branch_id, notes || null, requested_by]
     );
     const transferId = ins.insertId;
     const itemSql = `INSERT INTO stock_transfer_items (transfer_id, variant_id, stock_id, quantity_requested, batch_number, expiry_date) VALUES (?, ?, ?, ?, ?, ?)`;
@@ -76,7 +82,7 @@ async function createTransfer({ from_branch_id, to_branch_id, notes, items }, re
   }
 }
 
-async function updateStatus(id, status, userId) {
+async function updateStatus(id, status, userId, userBranchId) {
   const conn = await getConnection();
   try {
     await conn.beginTransaction();
@@ -84,9 +90,19 @@ async function updateStatus(id, status, userId) {
     if (!rows.length) return { notFound: true };
     const transfer = rows[0];
 
+    const uid = Number.isFinite(Number(userId)) ? Number(userId) : null;
+    const ub = Number.isFinite(Number(userBranchId)) ? Number(userBranchId) : null;
     if (status === 'in_transit' && transfer.status === 'pending') {
-      await conn.execute('UPDATE stock_transfers SET status = ?, approved_by = ? WHERE id = ?', [status, userId, id]);
+      if (!ub || ub !== Number(transfer.from_branch_id)) {
+        await conn.rollback();
+        return { forbidden: 'Only source branch can mark transfer in_transit.' };
+      }
+      await conn.execute('UPDATE stock_transfers SET status = ?, approved_by = ? WHERE id = ?', [status, uid, id]);
     } else if (status === 'received' && transfer.status === 'in_transit') {
+      if (!ub || ub !== Number(transfer.to_branch_id)) {
+        await conn.rollback();
+        return { forbidden: 'Only destination branch can mark transfer received.' };
+      }
       const [items] = await conn.execute('SELECT * FROM stock_transfer_items WHERE transfer_id = ?', [id]);
       for (const item of items) {
         await conn.execute(
@@ -100,7 +116,13 @@ async function updateStatus(id, status, userId) {
           [item.variant_id || item.product_id, transfer.to_branch_id, item.batch_number, item.expiry_date, item.quantity_requested]
         );
       }
-      await conn.execute('UPDATE stock_transfers SET status = ?, received_by = ? WHERE id = ?', [status, userId, id]);
+      await conn.execute('UPDATE stock_transfers SET status = ?, received_by = ? WHERE id = ?', [status, uid, id]);
+    } else if (status === 'cancelled' && transfer.status === 'pending') {
+      if (!ub || ub !== Number(transfer.from_branch_id)) {
+        await conn.rollback();
+        return { forbidden: 'Only source branch can cancel a pending transfer.' };
+      }
+      await conn.execute('UPDATE stock_transfers SET status = ? WHERE id = ?', [status, id]);
     } else {
       return { invalid: true, from: transfer.status };
     }
@@ -120,4 +142,3 @@ module.exports = {
   createTransfer,
   updateStatus,
 };
-

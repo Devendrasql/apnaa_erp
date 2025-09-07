@@ -45,8 +45,9 @@ async function getSaleById(id) {
             pv.sku,
             p.name AS product_name
        FROM sale_items si
-  LEFT JOIN product_variants pv ON pv.id = si.variant_id
-  LEFT JOIN products p ON p.id = COALESCE(pv.product_id, si.product_id)
+  LEFT JOIN product_stock ps ON ps.id = si.stock_id
+  LEFT JOIN product_variants pv ON pv.id = ps.variant_id
+  LEFT JOIN products p ON p.id = pv.product_id
       WHERE si.sale_id = ?
       ORDER BY si.id ASC`,
     [id]
@@ -112,10 +113,13 @@ async function createSale({ branch_id, customer_id, doctor_id, items = [], payme
     tax_amount += lineTax;
 
     const batch = it.batch_number ?? s.batch_number ?? 'NA';
-    const expiry = it.expiry_date ?? s.expiry_date ?? null;
+    const expiryRaw = it.expiry_date ?? s.expiry_date ?? null;
+    const expiry = expiryRaw ? new Date(expiryRaw) : null;
+    const expiryStr = expiry ? expiry.toISOString().slice(0, 10) : null; // YYYY-MM-DD for DATE column
 
     resolved.push({
       stock_id: s.id,
+      variant_id: s.variant_id,
       product_id: s.product_id,
       quantity: qty,
       unit_price: unitPrice,
@@ -124,7 +128,7 @@ async function createSale({ branch_id, customer_id, doctor_id, items = [], payme
       tax_percentage: taxPct,
       line_total: lineBase,
       batch_number: batch,
-      expiry_date: expiry,
+      expiry_date: expiryStr,
     });
   }
   const final_amount = total_amount + tax_amount - Number(discount_amount || 0);
@@ -134,17 +138,17 @@ async function createSale({ branch_id, customer_id, doctor_id, items = [], payme
     await conn.beginTransaction();
     const invoice_number = await makeInvoiceNumber(Number(branch_id));
     const [ins] = await conn.execute(
-      `INSERT INTO sales (invoice_number, branch_id, customer_id, doctor_id, total_items, total_amount, discount_amount, tax_amount, final_amount, payment_method, cashier_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [invoice_number, branch_id, customer_id || null, doctor_id || null, items.length, total_amount, Number(discount_amount || 0), tax_amount, final_amount, payment_method || null, cashier_id]
+      `INSERT INTO sales (invoice_number, branch_id, customer_id, doctor_id, total_amount, discount_amount, tax_amount, final_amount, cashier_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [invoice_number, branch_id, customer_id || null, doctor_id || null, total_amount, Number(discount_amount || 0), tax_amount, final_amount, cashier_id]
     );
     const saleId = ins.insertId;
 
     for (const r of resolved) {
       await conn.execute(
-        `INSERT INTO sale_items (sale_id, product_id, stock_id, quantity, unit_price, mrp, discount_percentage, tax_percentage, line_total, batch_number, expiry_date)
+        `INSERT INTO sale_items (sale_id, stock_id, variant_id, quantity, unit_price, mrp, discount_percentage, tax_percentage, line_total, batch_number, expiry_date)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [saleId, r.product_id, r.stock_id, r.quantity, r.unit_price, r.mrp, r.discount_percentage, r.tax_percentage, r.line_total, r.batch_number, r.expiry_date]
+        [saleId, r.stock_id, r.variant_id, r.quantity, r.unit_price, r.mrp, r.discount_percentage, r.tax_percentage, r.line_total, r.batch_number, r.expiry_date]
       );
       await conn.execute(
         `UPDATE product_stock SET quantity_available = quantity_available - ? WHERE id = ? AND quantity_available >= ?`,

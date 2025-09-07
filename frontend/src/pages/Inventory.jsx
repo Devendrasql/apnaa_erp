@@ -29,11 +29,12 @@ import {
   IconButton
 } from '@mui/material';
 import { Add, Search, Tune } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQueryClient } from 'react-query';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 
 import { api } from '../services/api'; 
+import { useInventory, useAddStock, useAdjustStock } from '@/features/inventory/hooks';
 import { useAuth } from '../contexts/AuthContext'; // 1. Import useAuth
 import AddStockFormModal from '../components/AddStockFormModal';
 import StockAdjustmentModal from '../components/StockAdjustmentModal';
@@ -56,46 +57,20 @@ const InventoryPage = () => {
   const queryClient = useQueryClient();
 
   // 3. Update the useQuery hook
-  const { data, isLoading, error } = useQuery(
-    // The query key now includes the currentBranch ID, so it will refetch when the branch changes
-    ['inventoryStock', page, rowsPerPage, debouncedSearchTerm, filters, currentBranch?.id],
-    () => api.getStock({ 
-      page: page + 1, 
-      limit: rowsPerPage, 
-      search: debouncedSearchTerm,
-      branch_id: currentBranch?.id, // Always pass the current branch ID to the API call
-      ...filters
-    }),
-    {
-      enabled: !!currentBranch, // Only run the query if a branch is selected
-      keepPreviousData: true,
-    }
-  );
-
-  const stockItems = data?.data?.data || [];
-  const totalStockItems = data?.data?.pagination?.total || 0;
-
-  const { mutate: addStock, isLoading: isAddingStock } = useMutation(api.addStock, {
-    onSuccess: () => {
-      toast.success('Stock added successfully!');
-      queryClient.invalidateQueries('inventoryStock');
-      setIsAddStockModalOpen(false);
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to add stock.');
-    }
+  const { data, isLoading, error } = useInventory({
+    page: page + 1,
+    limit: rowsPerPage,
+    search: debouncedSearchTerm,
+    branch_id: currentBranch?.id,
+    ...filters,
   });
 
-  const { mutate: adjustStock, isLoading: isAdjustingStock } = useMutation(api.adjustStock, {
-    onSuccess: () => {
-      toast.success('Stock adjusted successfully!');
-      queryClient.invalidateQueries('inventoryStock');
-      setIsAdjustModalOpen(false);
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to adjust stock.');
-    }
-  });
+  const stockItems = data?.data || [];
+  const totalStockItems = data?.pagination?.total || 0;
+
+  const addStockMutation = useAddStock();
+
+  const adjustStockMutation = useAdjustStock();
 
   const handleFilterChange = (event) => {
     const { name, checked } = event.target;
@@ -109,7 +84,16 @@ const InventoryPage = () => {
 
   const handleOpenAddStockModal = () => { setIsAddStockModalOpen(true); };
   const handleCloseAddStockModal = () => { setIsAddStockModalOpen(false); };
-  const handleAddStockSubmit = (formData) => { addStock(formData); };
+  const handleAddStockSubmit = (formData) => {
+    addStockMutation.mutate(formData, {
+      onSuccess: () => {
+        toast.success('Stock added successfully!');
+        queryClient.invalidateQueries(['inventory']);
+        setIsAddStockModalOpen(false);
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || 'Failed to add stock.'),
+    });
+  };
 
   const handleOpenAdjustModal = (stockItem) => {
     setSelectedStockItem(stockItem);
@@ -120,7 +104,14 @@ const InventoryPage = () => {
     setSelectedStockItem(null);
   };
   const handleAdjustStockSubmit = (formData) => {
-    adjustStock(formData);
+    adjustStockMutation.mutate(formData, {
+      onSuccess: () => {
+        toast.success('Stock adjusted successfully!');
+        queryClient.invalidateQueries(['inventory']);
+        setIsAdjustModalOpen(false);
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || 'Failed to adjust stock.'),
+    });
   };
 
 
@@ -205,7 +196,7 @@ const InventoryPage = () => {
         open={isAddStockModalOpen}
         onClose={handleCloseAddStockModal}
         onSubmit={handleAddStockSubmit}
-        isLoading={isAddingStock}
+        isLoading={addStockMutation.isLoading}
       />
 
       <StockAdjustmentModal
@@ -213,7 +204,7 @@ const InventoryPage = () => {
         onClose={handleCloseAdjustModal}
         onSubmit={handleAdjustStockSubmit}
         stockItem={selectedStockItem}
-        isLoading={isAdjustingStock}
+        isLoading={adjustStockMutation.isLoading}
       />
     </Box>
   );

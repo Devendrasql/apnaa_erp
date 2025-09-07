@@ -12,12 +12,12 @@ import toast from 'react-hot-toast';
 export default function AbacPoliciesPage() {
   const qc = useQueryClient();
 
-  const policiesQ = useQuery(['abac-policies'], () => api.get('/api/abac/policies'), {
+  const policiesQ = useQuery(['abac-policies'], () => api.getAbacPolicies(), {
     select: r => r.data.data ?? r.data
   });
 
   const saveMutation = useMutation(
-    (payload) => api.put('/api/abac/policies', payload),
+    (payload) => api.updateAbacPolicies(payload),
     {
       onSuccess: () => {
         toast.success('Policies saved');

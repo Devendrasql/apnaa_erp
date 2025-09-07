@@ -21,11 +21,14 @@ import {
   InputAdornment
 } from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQueryClient } from 'react-query';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 
-import { api } from '../services/api'; // Your API service
+import { api } from '../services/api'; // existing service retained for modal lookups
+import { useProducts, useDeleteProduct } from '@/features/products/hooks';
+import { getProductById } from '@/features/products/api';
+import { normalizeProductDetail } from '@/features/products/utils';
 import ProductFormModal from '../components/ProductFormModal';
 
 const ProductsPage = () => {
@@ -41,29 +44,13 @@ const ProductsPage = () => {
   const queryClient = useQueryClient();
 
   // Fetching the list of master products from your backend
-  const { data, isLoading, error } = useQuery(
-    ['products', page, rowsPerPage, debouncedSearchTerm],
-    () => api.getProducts({ 
-      page: page + 1, 
-      limit: rowsPerPage, 
-      search: debouncedSearchTerm 
-    }),
-    { keepPreviousData: true }
-  );
+  const { data, isLoading, error } = useProducts({ page: page + 1, limit: rowsPerPage, search: debouncedSearchTerm });
 
-  const products = data?.data?.data || [];
-  const totalProducts = data?.data?.pagination?.total || 0;
+  const products = data?.data || [];
+  const totalProducts = data?.pagination?.total || 0;
 
   // --- Mutation for Deleting a Product ---
-  const { mutate: deleteProduct } = useMutation(api.deleteProduct, {
-    onSuccess: () => {
-      toast.success('Product and all its variants deleted successfully!');
-      queryClient.invalidateQueries('products');
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to delete product.');
-    }
-  });
+  const deleteProductMutation = useDeleteProduct();
 
   // --- Event Handlers ---
   const handleChangePage = (_, newPage) => setPage(newPage);
@@ -86,8 +73,9 @@ const ProductsPage = () => {
     try {
         // CRITICAL: Fetch the full product details, including all variants and ingredients,
         // before opening the modal for editing.
-        const response = await api.getProductById(product.id);
-        setSelectedProduct(response.data.data);
+        const response = await getProductById(product.id);
+        const normalized = normalizeProductDetail(response);
+        setSelectedProduct(normalized);
         setIsModalOpen(true);
     } catch (err) {
         toast.error('Failed to fetch complete product details.');
@@ -98,7 +86,13 @@ const ProductsPage = () => {
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this product and all its variants? This action cannot be undone.')) {
-      deleteProduct(id);
+      deleteProductMutation.mutate(id, {
+        onSuccess: () => {
+          toast.success('Product and all its variants deleted successfully!');
+          queryClient.invalidateQueries(['products']);
+        },
+        onError: (err) => toast.error(err?.response?.data?.message || 'Failed to delete product.'),
+      });
     }
   };
 

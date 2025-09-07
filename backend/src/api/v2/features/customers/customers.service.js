@@ -31,7 +31,7 @@ async function getCustomer(id, org_id) {
 }
 
 async function createCustomer({ org_id, first_name, last_name, phone, email, address, city, state, pincode }) {
-  const [result] = await executeQuery(
+  const result = await executeQuery(
     `INSERT INTO customers (org_id, first_name, last_name, phone, email, address, city, state, pincode)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [org_id, first_name, last_name, phone, email || null, address || null, city || null, state || null, pincode || null]
@@ -40,7 +40,7 @@ async function createCustomer({ org_id, first_name, last_name, phone, email, add
 }
 
 async function updateCustomer(id, org_id, { first_name, last_name, phone, email, address, city, state, pincode, is_active }) {
-  const [result] = await executeQuery(
+  const result = await executeQuery(
     `UPDATE customers SET
        first_name = ?, last_name = ?, phone = ?,
        email = COALESCE(?, email), address = COALESCE(?, address), city = COALESCE(?, city), state = COALESCE(?, state), pincode = COALESCE(?, pincode),
@@ -65,4 +65,3 @@ module.exports = {
   updateCustomer,
   softDeleteCustomer,
 };
-

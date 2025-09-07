@@ -24,11 +24,12 @@ import {
   Chip
 } from '@mui/material';
 import { Add } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
 import { api } from '../services/api'; 
-import { useAuth } from '../contexts/AuthContext'; // 1. Import useAuth
+import { useAuth } from '../contexts/AuthContext';
+import { useTransfers, useCreateTransfer } from '@/features/transfers/hooks';
 import StockTransferFormModal from '../components/StockTransferFormModal';
 
 const statusColors = {
@@ -51,33 +52,17 @@ const StockTransfersPage = () => {
   const navigate = useNavigate();
 
   // 3. Update the useQuery hook to be branch-aware
-  const { data, isLoading, error } = useQuery(
-    ['stockTransfers', page, rowsPerPage, filters, currentBranch?.id],
-    () => api.getStockTransfers({ 
-      page: page + 1, 
-      limit: rowsPerPage, 
-      branch_id: currentBranch?.id, // Pass current branch to filter 'from' or 'to' on backend
-      ...filters 
-    }),
-    {
-      enabled: !!currentBranch, // Only run query if a branch is selected
-      keepPreviousData: true,
-    }
-  );
+  const { data, isLoading, error } = useTransfers({
+    page: page + 1,
+    limit: rowsPerPage,
+    branch_id: currentBranch?.id,
+    ...filters,
+  });
 
   const transfers = data?.data?.data || [];
   const totalTransfers = data?.data?.pagination?.total || 0;
   
-  const { mutate: createStockTransfer, isLoading: isCreating } = useMutation(api.createStockTransfer, {
-    onSuccess: () => {
-      toast.success('Stock Transfer request created successfully!');
-      queryClient.invalidateQueries('stockTransfers');
-      setIsModalOpen(false);
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to create transfer.');
-    }
-  });
+  const createTransferMutation = useCreateTransfer();
 
   const handleFilterChange = (event) => {
     setFilters(prev => ({ ...prev, [event.target.name]: event.target.value }));
@@ -102,7 +87,14 @@ const StockTransfersPage = () => {
   };
 
   const handleFormSubmit = (formData) => {
-    createStockTransfer(formData);
+    createTransferMutation.mutate(formData, {
+      onSuccess: () => {
+        toast.success('Stock Transfer request created successfully!');
+        queryClient.invalidateQueries(['transfers']);
+        setIsModalOpen(false);
+      },
+      onError: (err) => toast.error(err?.response?.data?.message || 'Failed to create transfer.'),
+    });
   };
 
   const handleViewDetails = (transferId) => {
@@ -191,12 +183,12 @@ const StockTransfersPage = () => {
         </>
       )}
 
-      <StockTransferFormModal
-        open={isModalOpen}
-        onClose={handleModalClose}
-        onSubmit={handleFormSubmit}
-        isLoading={isCreating}
-      />
+        <StockTransferFormModal
+          open={isModalOpen}
+          onClose={handleModalClose}
+          onSubmit={handleFormSubmit}
+          isLoading={createTransferMutation.isLoading}
+        />
     </Box>
   );
 };

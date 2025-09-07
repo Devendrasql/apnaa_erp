@@ -21,10 +21,13 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { useQuery } from 'react-query';
 import { Add, Delete } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 
 const StockTransferFormModal = ({ open, onClose, onSubmit, isLoading }) => {
   // Correctly initialize useForm and all its methods
+  const { currentBranch, isElevated } = useAuth();
   const { control, handleSubmit, reset, watch, setValue } = useForm({
     defaultValues: {
       from_branch_id: '',
@@ -43,9 +46,11 @@ const StockTransferFormModal = ({ open, onClose, onSubmit, isLoading }) => {
 
   // Fetch data for dropdowns
   const { data: branchesData, isLoading: isLoadingBranches } = useQuery('branches', () => api.getBranches());
+  const [stockSearch, setStockSearch] = React.useState('');
+  const [debouncedStockSearch] = useDebounce(stockSearch, 300);
   const { data: stockData, isLoading: isLoadingStock } = useQuery(
-    ['inventoryStockForTransfer', fromBranchId], // Use a unique query key
-    () => api.getStock({ branch_id: fromBranchId, limit: 1000 }),
+    ['inventoryStockForTransfer', fromBranchId, debouncedStockSearch],
+    () => api.getStock({ branch_id: fromBranchId, limit: 200, search: debouncedStockSearch }),
     {
       enabled: !!fromBranchId, // Only fetch stock when a "from" branch is selected
       select: (res) => res.data.data
@@ -61,7 +66,18 @@ const StockTransferFormModal = ({ open, onClose, onSubmit, isLoading }) => {
     }
   }, [open, reset]);
 
+  // Default the from_branch to current branch on open
+  useEffect(() => {
+    if (open && currentBranch?.id) {
+      setValue('from_branch_id', currentBranch.id);
+    }
+  }, [open, currentBranch, setValue]);
+
   const handleFormSubmit = (data) => {
+    if (Number(data.from_branch_id) === Number(data.to_branch_id)) {
+      toast.error('Destination branch must be different from source branch.');
+      return;
+    }
     const submissionData = {
         ...data,
         // Filter out any empty item rows and format the data for the backend
@@ -93,7 +109,7 @@ const StockTransferFormModal = ({ open, onClose, onSubmit, isLoading }) => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <Controller name="from_branch_id" control={control} rules={{ required: 'This field is required' }} render={({ field, fieldState }) => (
-                <TextField {...field} select label="From Branch (Source)" fullWidth required error={!!fieldState.error} helperText={fieldState.error?.message} disabled={isLoadingBranches}>
+                <TextField {...field} select label="From Branch (Source)" fullWidth required error={!!fieldState.error} helperText={fieldState.error?.message} disabled={isLoadingBranches || !isElevated}>
                   {branches.map((branch) => (<MenuItem key={branch.id} value={branch.id}>{branch.name}</MenuItem>))}
                 </TextField>
               )} />
@@ -111,6 +127,15 @@ const StockTransferFormModal = ({ open, onClose, onSubmit, isLoading }) => {
           </Grid>
 
           <Divider sx={{ my: 3 }}><Typography>Items to Transfer</Typography></Divider>
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              fullWidth
+              label="Search stock (name, SKU, batch)"
+              value={stockSearch}
+              onChange={(e) => setStockSearch(e.target.value)}
+              disabled={!fromBranchId}
+            />
+          </Box>
 
           {fields.map((field, index) => (
             <Grid container spacing={2} key={field.id} sx={{ mb: 2, alignItems: 'center' }}>

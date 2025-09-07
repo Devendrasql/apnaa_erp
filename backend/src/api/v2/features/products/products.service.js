@@ -40,6 +40,7 @@ async function getProductById(id) {
     [id]
   );
   if (product.product_type === 'PHARMA') {
+    const DEFAULT_PRICE_LIST_ID = 1; // fallback price list
     for (const v of variants) {
       v.ingredients = await executeQuery(
         `SELECT i.name, vi.strength_value, vi.strength_uom
@@ -106,17 +107,57 @@ async function createProduct({ master = {}, variants = [] }) {
   try {
     await conn.beginTransaction();
     const [ins] = await conn.execute(
-      `INSERT INTO products (name, category_id, manufacturer_id, product_type, is_deleted)
-       VALUES (?, ?, ?, ?, 0)`,
-      [master.name, master.category_id || null, master.manufacturer_id || null, master.product_type || null]
+      `INSERT INTO products (
+         name,
+         generic_name,
+         category_id,
+         manufacturer_id,
+         brand_id,
+         hsn_code,
+         product_type,
+         is_active,
+         is_deleted
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+      [
+        master.name,
+        master.generic_name || null,
+        master.category_id || null,
+        master.manufacturer_id || null,
+        master.brand_id || null,
+        master.hsn_code || null,
+        master.product_type || null,
+        master.is_active === false ? 0 : 1,
+      ]
     );
     const productId = ins.insertId;
 
     for (const v of variants) {
       const [vins] = await conn.execute(
-        `INSERT INTO product_variants (product_id, sku, rack_id, std_disc_id, is_deleted, is_active)
-         VALUES (?, ?, ?, ?, 0, 1)`,
-        [productId, v.sku || null, v.rack_id || null, v.std_disc_id || null]
+        `INSERT INTO product_variants (
+           product_id,
+           sku,
+           barcode,
+           dosage_form_id,
+           pack_qty,
+           pack_uom_id,
+           default_gst_slab_id,
+           rack_id,
+           std_disc_id,
+           is_deleted,
+           is_active
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        [
+          productId,
+          v.sku || null,
+          v.barcode || null,
+          v.dosage_form_id || null,
+          v.pack_qty != null ? Number(v.pack_qty) : null,
+          v.pack_uom_id || null,
+          v.default_gst_slab_id || null,
+          v.rack_id || null,
+          v.std_disc_id || null,
+          v.is_active === false ? 0 : 1,
+        ]
       );
       const variantId = vins.insertId;
 
@@ -133,8 +174,8 @@ async function createProduct({ master = {}, variants = [] }) {
       }
       if (v.mrp != null) {
         await conn.execute(
-          `INSERT INTO product_prices (variant_id, price, effective_from) VALUES (?, ?, NOW())`,
-          [variantId, Number(v.mrp) || 0]
+          `INSERT INTO product_prices (variant_id, price_list_id, price, effective_from) VALUES (?, ?, ?, NOW())`,
+          [variantId, DEFAULT_PRICE_LIST_ID, Number(v.mrp) || 0]
         );
       }
     }
@@ -148,8 +189,27 @@ async function updateProductWrite(id, { master = {}, variants = [] }) {
   try {
     await conn.beginTransaction();
     await conn.execute(
-      `UPDATE products SET name = ?, category_id = ?, manufacturer_id = ?, product_type = ? WHERE id = ? AND is_deleted = FALSE`,
-      [master.name, master.category_id || null, master.manufacturer_id || null, master.product_type || null, id]
+      `UPDATE products SET 
+         name = ?,
+         generic_name = ?,
+         category_id = ?,
+         manufacturer_id = ?,
+         brand_id = ?,
+         hsn_code = ?,
+         product_type = ?,
+         is_active = ?
+       WHERE id = ? AND is_deleted = FALSE`,
+      [
+        master.name,
+        master.generic_name || null,
+        master.category_id || null,
+        master.manufacturer_id || null,
+        master.brand_id || null,
+        master.hsn_code || null,
+        master.product_type || null,
+        master.is_active === false ? 0 : 1,
+        id,
+      ]
     );
 
     // Existing variant ids
@@ -157,12 +217,34 @@ async function updateProductWrite(id, { master = {}, variants = [] }) {
     const existing = new Set(rows.map(r => r.id));
     const seen = new Set();
 
+    const DEFAULT_PRICE_LIST_ID = 1; // fallback price list
     for (const v of variants) {
       if (v.id && existing.has(v.id)) {
         seen.add(v.id);
         await conn.execute(
-          `UPDATE product_variants SET sku = ?, rack_id = ?, std_disc_id = ?, is_active = ? WHERE id = ?`,
-          [v.sku || null, v.rack_id || null, v.std_disc_id || null, v.is_active === false ? 0 : 1, v.id]
+          `UPDATE product_variants SET 
+             sku = ?,
+             barcode = ?,
+             dosage_form_id = ?,
+             pack_qty = ?,
+             pack_uom_id = ?,
+             default_gst_slab_id = ?,
+             rack_id = ?,
+             std_disc_id = ?,
+             is_active = ?
+           WHERE id = ?`,
+          [
+            v.sku || null,
+            v.barcode || null,
+            v.dosage_form_id || null,
+            v.pack_qty != null ? Number(v.pack_qty) : null,
+            v.pack_uom_id || null,
+            v.default_gst_slab_id || null,
+            v.rack_id || null,
+            v.std_disc_id || null,
+            v.is_active === false ? 0 : 1,
+            v.id,
+          ]
         );
         // Replace ingredients if provided
         if (Array.isArray(v.ingredients)) {
@@ -177,12 +259,35 @@ async function updateProductWrite(id, { master = {}, variants = [] }) {
           }
         }
         if (v.mrp != null) {
-          await conn.execute(`INSERT INTO product_prices (variant_id, price, effective_from) VALUES (?, ?, NOW())`, [v.id, Number(v.mrp) || 0]);
+          await conn.execute(`INSERT INTO product_prices (variant_id, price_list_id, price, effective_from) VALUES (?, ?, ?, NOW())`, [v.id, DEFAULT_PRICE_LIST_ID, Number(v.mrp) || 0]);
         }
       } else {
         const [vins] = await conn.execute(
-          `INSERT INTO product_variants (product_id, sku, rack_id, std_disc_id, is_deleted, is_active) VALUES (?, ?, ?, ?, 0, 1)`,
-          [id, v.sku || null, v.rack_id || null, v.std_disc_id || null]
+          `INSERT INTO product_variants (
+             product_id,
+             sku,
+             barcode,
+             dosage_form_id,
+             pack_qty,
+             pack_uom_id,
+             default_gst_slab_id,
+             rack_id,
+             std_disc_id,
+             is_deleted,
+             is_active
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+          [
+            id,
+            v.sku || null,
+            v.barcode || null,
+            v.dosage_form_id || null,
+            v.pack_qty != null ? Number(v.pack_qty) : null,
+            v.pack_uom_id || null,
+            v.default_gst_slab_id || null,
+            v.rack_id || null,
+            v.std_disc_id || null,
+            v.is_active === false ? 0 : 1,
+          ]
         );
         const variantId = vins.insertId; seen.add(variantId);
         if (Array.isArray(v.ingredients)) {
@@ -196,7 +301,7 @@ async function updateProductWrite(id, { master = {}, variants = [] }) {
           }
         }
         if (v.mrp != null) {
-          await conn.execute(`INSERT INTO product_prices (variant_id, price, effective_from) VALUES (?, ?, NOW())`, [variantId, Number(v.mrp) || 0]);
+          await conn.execute(`INSERT INTO product_prices (variant_id, price_list_id, price, effective_from) VALUES (?, ?, ?, NOW())`, [variantId, DEFAULT_PRICE_LIST_ID, Number(v.mrp) || 0]);
         }
       }
     }

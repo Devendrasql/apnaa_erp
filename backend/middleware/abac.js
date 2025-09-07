@@ -16,6 +16,11 @@ function abacEnforce(options = {}) {
 
   return async (req, res, next) => {
     try {
+      // Elevation bypass for admins/managers (mirrors frontend AuthContext logic)
+      const roleName = String(req.user?.role || '').toLowerCase().replace(/\s+/g, '_');
+      const elevated = ['super_admin', 'admin', 'manager', 'system_admin', 'sa'].includes(roleName);
+      if (elevated) return next();
+
       const user = req.user || {};
       const perms = user.permissions instanceof Set ? user.permissions : new Set(Array.isArray(user.permissions) ? user.permissions : []);
 
@@ -48,4 +53,3 @@ function abacEnforce(options = {}) {
 }
 
 module.exports = { abacEnforce };
-

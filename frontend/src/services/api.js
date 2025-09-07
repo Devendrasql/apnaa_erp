@@ -141,7 +141,7 @@ axios.interceptors.response.use(
       try {
         original._retry = true;
         const refreshToken = Cookies.get('refreshToken');
-        const res = await axios.post('/api/auth/refresh', { refreshToken });
+        const res = await axios.post(`${API_PREFIX}/auth/refresh`, { refreshToken });
         const { accessToken } = res.data.data;
         Cookies.set('accessToken', accessToken, { expires: 1 });
         original.headers.Authorization = `Bearer ${accessToken}`;
@@ -165,127 +165,132 @@ axios.interceptors.response.use(
 export const api = {
   
   // Auth
-  login: (credentials) => axios.post('/api/auth/login', credentials),
-  logout: () => axios.post('/api/auth/logout'),
-  changePassword: (data) => axios.post('/api/auth/change-password', data),
+  login: (credentials) => axios.post(`${API_PREFIX}/auth/login`, credentials),
+  logout: () => axios.post(`${API_PREFIX}/auth/logout`),
+  changePassword: (data) => axios.post(`${API_PREFIX}/auth/change-password`, data),
 
   // Dashboard
-  getDashboardStats: (params) => axios.get('/api/dashboard/stats', { params }),
-  getTopSellingProducts: (params) => axios.get('/api/dashboard/top-selling', { params }),
-  getRecentSales: (params) => axios.get('/api/dashboard/recent-sales', { params }),
-  getSalesOverTime: (params) => axios.get('/api/dashboard/sales-over-time', { params }),
+  getDashboardStats: (params) => axios.get(`${API_PREFIX}/dashboard/stats`, { params }),
+  getTopSellingProducts: (params) => axios.get(`${API_PREFIX}/dashboard/top-selling`, { params }),
+  getRecentSales: (params) => axios.get(`${API_PREFIX}/dashboard/recent-sales`, { params }),
+  getSalesOverTime: (params) => axios.get(`${API_PREFIX}/dashboard/sales-over-time`, { params }),
 
   // Branches
-  getBranches: (params) => axios.get('/api/branches', { params }),
-  createBranch: (data) => axios.post('/api/branches', data),
-  updateBranch: (id, data) => axios.put(`/api/branches/${id}`, data),
-  deleteBranch: (id) => axios.delete(`/api/branches/${id}`),
+  getBranches: (params) => axios.get(`${API_PREFIX}/branches`, { params }),
+  createBranch: (data) => axios.post(`${API_PREFIX}/branches`, data),
+  updateBranch: (id, data) => axios.put(`${API_PREFIX}/branches/${id}`, data),
+  deleteBranch: (id) => axios.delete(`${API_PREFIX}/branches/${id}`),
 
   // Products
-  getProducts: (params) => axios.get('/api/products', { params }),
-  getProductById: (id) => axios.get(`/api/products/${id}`),
-  getProductLookups: (params) => axios.get('/api/products/lookups', { params }),
-  createProduct: (data) => axios.post('/api/products', data),
-  updateProduct: (id, data) => axios.put(`/api/products/${id}`, data),
-  deleteProduct: (id) => axios.delete(`/api/products/${id}`),
-  searchIngredients: (params) => axios.get('/api/products/ingredients', { params }),
+  getProducts: (params) => axios.get(`${API_PREFIX}/products`, { params }),
+  getProductById: (id) => axios.get(`${API_PREFIX}/products/${id}`),
+  getProductLookups: (params) => axios.get(`${API_PREFIX}/products/lookups`, { params }),
+  createProduct: (data) => axios.post(`${API_PREFIX}/products`, data),
+  updateProduct: (id, data) => axios.put(`${API_PREFIX}/products/${id}`, data),
+  deleteProduct: (id) => axios.delete(`${API_PREFIX}/products/${id}`),
+  searchIngredients: (params) => axios.get(`${API_PREFIX}/products/ingredients`, { params }),
 
   // Manufacturer + Brand unified API
-  getMfgBrands: (params) => axios.get('/api/mfg-brands', { params }),
-  getMfgBrandById: (id) => axios.get(`/api/mfg-brands/${id}`),
-  createMfgBrand: (data) => axios.post('/api/mfg-brands', data),
-  updateMfgBrand: (id, data) => axios.put(`/api/mfg-brands/${id}`, data),
-  toggleMfgActive: (id, is_active) => axios.patch(`/api/mfg-brands/${id}/active`, { is_active }),
-  importManufacturers: (payload) => axios.post('/api/mfg-brands/import', payload),
+  getMfgBrands: (params) => axios.get(`${API_PREFIX}/mfg-brands`, { params }),
+  getMfgBrandById: (id) => axios.get(`${API_PREFIX}/mfg-brands/${id}`),
+  createMfgBrand: (data) => axios.post(`${API_PREFIX}/mfg-brands`, data),
+  updateMfgBrand: (id, data) => axios.put(`${API_PREFIX}/mfg-brands/${id}`, data),
+  toggleMfgActive: (id, is_active) => axios.patch(`${API_PREFIX}/mfg-brands/${id}/active`, { is_active }),
+  importManufacturers: (payload) => axios.post(`${API_PREFIX}/mfg-brands/import`, payload),
 
   // Categories
-  getCategories: () => axios.get('/api/categories'),
-  createCategory: (data) => axios.post('/api/categories', data),
-  updateCategory: (id, data) => axios.put(`/api/categories/${id}`, data),
-  deleteCategory: (id) => axios.delete(`/api/categories/${id}`),
+  getCategories: () => axios.get(`${API_PREFIX}/categories`),
+  createCategory: (data) => axios.post(`${API_PREFIX}/categories`, data),
+  updateCategory: (id, data) => axios.put(`${API_PREFIX}/categories/${id}`, data),
+  deleteCategory: (id) => axios.delete(`${API_PREFIX}/categories/${id}`),
 
   // Inventory
-  getStock: (params) => axios.get('/api/inventory/stock', { params }),
-  addStock: (data) => axios.post('/api/inventory/add-stock', data),
-  adjustStock: (data) => axios.post('/api/inventory/adjust-stock', data),
+  getStock: (params) => axios.get(`${API_PREFIX}/inventory/stock`, { params }),
+  addStock: (data) => axios.post(`${API_PREFIX}/inventory/add-stock`, data),
+  adjustStock: (data) => axios.post(`${API_PREFIX}/inventory/adjust-stock`, data),
 
   // Sales
-  getSales: (params) => axios.get('/api/sales', { params }),
-  createSale: (data) => axios.post('/api/sales', data),
-  getSaleDetails: (id) => axios.get(`/api/sales/${id}`),
+  getSales: (params) => axios.get(`${API_PREFIX}/sales`, { params }),
+  createSale: (data) => axios.post(`${API_PREFIX}/sales`, data),
+  getSaleDetails: (id) => axios.get(`${API_PREFIX}/sales/${id}`),
 
   // Customers
-  getCustomers: (params) => axios.get('/api/customers', { params }),
-  createCustomer: (data) => axios.post('/api/customers', data),
-  updateCustomer: (id, data) => axios.put(`/api/customers/${id}`, data),
-  deleteCustomer: (id) => axios.delete(`/api/customers/${id}`),
+  getCustomers: (params) => axios.get(`${API_PREFIX}/customers`, { params }),
+  createCustomer: (data) => axios.post(`${API_PREFIX}/customers`, data),
+  updateCustomer: (id, data) => axios.put(`${API_PREFIX}/customers/${id}`, data),
+  deleteCustomer: (id) => axios.delete(`${API_PREFIX}/customers/${id}`),
 
   // Suppliers
-  getSuppliers: (params) => axios.get('/api/suppliers', { params }),
-  createSupplier: (data) => axios.post('/api/suppliers', data),
-  updateSupplier: (id, data) => axios.put(`/api/suppliers/${id}`, data),
-  deleteSupplier: (id) => axios.delete(`/api/suppliers/${id}`),
-  getSupplierByGST: (gstNumber) => axios.get(`/api/suppliers/gst/${gstNumber}`),
+  getSuppliers: (params) => axios.get(`${API_PREFIX}/suppliers`, { params }),
+  createSupplier: (data) => axios.post(`${API_PREFIX}/suppliers`, data),
+  updateSupplier: (id, data) => axios.put(`${API_PREFIX}/suppliers/${id}`, data),
+  deleteSupplier: (id) => axios.delete(`${API_PREFIX}/suppliers/${id}`),
+  getSupplierByGST: (gstNumber) => axios.get(`${API_PREFIX}/suppliers/gst/${gstNumber}`),
 
   // Reports
-  getDailySalesReport: (params) => axios.get('/api/reports/daily-sales', { params }),
-  getInventoryReport: (params) => axios.get('/api/reports/inventory', { params }),
-  getProductPerformanceReport: (params) => axios.get('/api/reports/product-performance', { params }),
+  getDailySalesReport: (params) => axios.get(`${API_PREFIX}/reports/daily-sales`, { params }),
+  getInventoryReport: (params) => axios.get(`${API_PREFIX}/reports/inventory`, { params }),
+  getProductPerformanceReport: (params) => axios.get(`${API_PREFIX}/reports/product-performance`, { params }),
 
   // Purchase Orders
-  getPurchaseOrders: (params) => axios.get('/api/purchase-orders', { params }),
-  createPurchaseOrder: (data) => axios.post('/api/purchase-orders', data),
-  getPurchaseOrderById: (id) => axios.get(`/api/purchase-orders/${id}`),
-  receivePurchaseOrder: (id, data) => axios.post(`/api/purchase-orders/${id}/receive`, data),
+  getPurchaseOrders: (params) => axios.get(`${API_PREFIX}/purchase-orders`, { params }),
+  createPurchaseOrder: (data) => axios.post(`${API_PREFIX}/purchase-orders`, data),
+  getPurchaseOrderById: (id) => axios.get(`${API_PREFIX}/purchase-orders/${id}`),
+  receivePurchaseOrder: (id, data) => axios.post(`${API_PREFIX}/purchase-orders/${id}/receive`, data),
 
   // Purchases
-  getAllPurchases: (params) => axios.get('/api/purchases', { params }),
-  createPurchase: (data) => axios.post('/api/purchases', data),
-  getPurchaseById: (id) => axios.get(`/api/purchases/${id}`),
-  postPurchaseToStock: (id) => axios.post(`/api/purchases/${id}/post`),
+  getAllPurchases: (params) => axios.get(`${API_PREFIX}/purchases`, { params }),
+  createPurchase: (data) => axios.post(`${API_PREFIX}/purchases`, data),
+  getPurchaseById: (id) => axios.get(`${API_PREFIX}/purchases/${id}`),
+  postPurchaseToStock: (id) => axios.post(`${API_PREFIX}/purchases/${id}/post`),
 
   // Users
-  getUsers: (params) => axios.get('/api/users', { params }),
-  getUserById: (id) => axios.get(`/api/users/${id}`),
-  createUser: (data) => axios.post('/api/users', data),
-  updateUser: (id, data) => axios.put(`/api/users/${id}`, data),
-  deleteUser: (id) => axios.delete(`/api/users/${id}`),
+  getUsers: (params) => axios.get(`${API_PREFIX}/users`, { params }),
+  getUserById: (id) => axios.get(`${API_PREFIX}/users/${id}`),
+  createUser: (data) => axios.post(`${API_PREFIX}/users`, data),
+  updateUser: (id, data) => axios.put(`${API_PREFIX}/users/${id}`, data),
+  deleteUser: (id) => axios.delete(`${API_PREFIX}/users/${id}`),
 
   // Payments
-  getOutstandingSales: (params) => axios.get('/api/payments/outstanding', { params }),
-  recordPayment: (data) => axios.post('/api/payments', data),
+  getOutstandingSales: (params) => axios.get(`${API_PREFIX}/payments/outstanding`, { params }),
+  recordPayment: (data) => axios.post(`${API_PREFIX}/payments`, data),
 
   // Stock Transfers
-  getStockTransfers: (params) => axios.get('/api/stock-transfers', { params }),
-  createStockTransfer: (data) => axios.post('/api/stock-transfers', data),
-  getStockTransferById: (id) => axios.get(`/api/stock-transfers/${id}`),
-  updateTransferStatus: (id, status) => axios.put(`/api/stock-transfers/${id}/status`, { status }),
+  getStockTransfers: (params) => axios.get(`${API_PREFIX}/transfers`, { params }),
+  createStockTransfer: (data) => axios.post(`${API_PREFIX}/transfers`, data),
+  getStockTransferById: (id) => axios.get(`${API_PREFIX}/transfers/${id}`),
+  updateTransferStatus: (id, status) => axios.put(`${API_PREFIX}/transfers/${id}/status`, { status }),
 
   // Settings
-  getSettings: () => axios.get('/api/settings'),
-  updateSettings: (data) => axios.put('/api/settings', data),
+  getSettings: () => axios.get(`${API_PREFIX}/settings`),
+  updateSettings: (data) => axios.put(`${API_PREFIX}/settings`, data),
 
   // Roles
-  getAllRoles: () => axios.get('/api/roles'),
-  getRoleById: (id) => axios.get(`/api/roles/${id}`),
-  updateRole: (id, data) => axios.put(`/api/roles/${id}`, data),
-  getAllPermissions: () => axios.get('/api/roles/permissions'),
+  getAllRoles: () => axios.get(`${API_PREFIX}/roles`),
+  getRoleById: (id) => axios.get(`${API_PREFIX}/roles/${id}`),
+  updateRole: (id, data) => axios.put(`${API_PREFIX}/roles/${id}`, data),
+  getAllPermissions: () => axios.get(`${API_PREFIX}/roles/permissions`),
+  createPermission: (payload) => axios.post(`${API_PREFIX}/roles/permissions`, payload),
+
+  // ABAC policies
+  getAbacPolicies: () => axios.get(`${API_PREFIX}/abac/policies`),
+  updateAbacPolicies: (payload) => axios.put(`${API_PREFIX}/abac/policies`, payload),
   // createPermission: (payload) => axios.post('/api/roles/permissions', payload),
   
   // UI (role-wise menus)
-  getUIMenus: () => axios.get('/api/ui/menus'),
+  getUIMenus: () => axios.get(`${API_PREFIX}/ui/menus`),
 
   // Racks
-  getRacks: (params) => axios.get('/api/racks', { params }),
-  createRack: (data) => axios.post('/api/racks', data),
-  updateRack: (id, data) => axios.put(`/api/racks/${id}`, data),
-  deleteRack: (id) => axios.delete(`/api/racks/${id}`),
+  getRacks: (params) => axios.get(`${API_PREFIX}/racks`, { params }),
+  createRack: (data) => axios.post(`${API_PREFIX}/racks`, data),
+  updateRack: (id, data) => axios.put(`${API_PREFIX}/racks/${id}`, data),
+  deleteRack: (id) => axios.delete(`${API_PREFIX}/racks/${id}`),
 
   // Standard Discounts
-  getStdDiscounts: (params) => axios.get('/api/std-discounts', { params }),
-  createStdDiscount: (data) => axios.post('/api/std-discounts', data),
-  updateStdDiscount: (id, data) => axios.put(`/api/std-discounts/${id}`, data),
-  deleteStdDiscount: (id) => axios.delete(`/api/std-discounts/${id}`),
+  getStdDiscounts: (params) => axios.get(`${API_PREFIX}/discounts`, { params }),
+  createStdDiscount: (data) => axios.post(`${API_PREFIX}/discounts`, data),
+  updateStdDiscount: (id, data) => axios.put(`${API_PREFIX}/discounts/${id}`, data),
+  deleteStdDiscount: (id) => axios.delete(`${API_PREFIX}/discounts/${id}`),
 
 // UI menu bindings (only if your backend has these endpoints)
   getMenuBindings: (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } }),
@@ -298,11 +303,11 @@ export const api = {
 
   /** Enroll a face for a known customer */
   enrollCustomerFace: (customerId, payloadOrBase64) =>
-    axios.post(`/api/face/customers/${customerId}/enroll`, withOrgId(payloadOrBase64)),
+    axios.post(`${API_PREFIX}/face/customers/${customerId}/enroll`, withOrgId(payloadOrBase64)),
 
   /** Identify a customer from webcam frame (payload OR raw base64) */
   identifyCustomerFace: (payloadOrBase64) =>
-    axios.post('/api/face/identify', withOrgId(payloadOrBase64)),
+    axios.post(`${API_PREFIX}/face/identify`, withOrgId(payloadOrBase64)),
 };
 
 // ------------------------------------------------------------
@@ -415,7 +420,7 @@ export const getAllRoles = api.getAllRoles;
 export const getRoleById = api.getRoleById;
 export const updateRole = api.updateRole;
 export const getAllPermissions = api.getAllPermissions;
-// export const createPermission = api.createPermission;
+export const createPermission = api.createPermission;
 
 // UI helpers (menus / permissions / features)
 export const getUIMenus = () => axios.get(`${API_PREFIX}/ui/menus`);
@@ -445,12 +450,9 @@ export const deleteStdDiscount = api.deleteStdDiscount;
 export const enrollCustomerFace = api.enrollCustomerFace;
 export const identifyCustomerFace = api.identifyCustomerFace;
 
-// export const getMenuBindings = (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } });
-// export const updateMenuBindings = (payload) => axios.put('/api/ui/menus/bindings', payload);
-
 // UI menu bindings (only if your backend has these endpoints)
-api.getMenuBindings = (role_id) => axios.get('/api/ui/menus/bindings', { params: { role_id } });
-api.updateMenuBindings = (payload) => axios.put('/api/ui/menus/bindings', payload);
+api.getMenuBindings = (role_id) => axios.get(`${API_PREFIX}/ui/menus/bindings`, { params: { role_id } });
+api.updateMenuBindings = (payload) => axios.put(`${API_PREFIX}/ui/menus/bindings`, payload);
 
 // named exports (optional)
 export const getMenuBindings = api.getMenuBindings;

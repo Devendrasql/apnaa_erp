@@ -15,9 +15,9 @@ import {
   Alert,
   Button
 } from '@mui/material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
-import { api } from '../services/api';
+import { useRoles, useUpdateRole } from '@/features/roles/hooks';
 import PermissionsFormModal from '../components/PermissionsFormModal'; // 1. Import the modal
 
 const RolesPage = () => {
@@ -26,28 +26,10 @@ const RolesPage = () => {
   const queryClient = useQueryClient();
 
   // Fetching roles data
-  const { data: roles, isLoading, error } = useQuery(
-    'roles',
-    () => api.getAllRoles(),
-    {
-      select: (response) => response.data.data
-    }
-  );
+  const { data: roles, isLoading, error } = useRoles();
 
   // Mutation for updating a role's permissions
-  const { mutate: updateRole, isLoading: isUpdating } = useMutation(
-    ({ id, data }) => api.updateRole(id, data),
-    {
-      onSuccess: () => {
-        toast.success('Role permissions updated successfully!');
-        queryClient.invalidateQueries('roles');
-        setIsModalOpen(false);
-      },
-      onError: (err) => {
-        toast.error(err.response?.data?.message || 'Failed to update role.');
-      }
-    }
-  );
+  const updateRoleMutation = useUpdateRole(selectedRole?.id);
 
   const handleManagePermissions = (role) => {
     setSelectedRole(role);
@@ -60,7 +42,15 @@ const RolesPage = () => {
   };
 
   const handleFormSubmit = (formData) => {
-    updateRole({ id: selectedRole.id, data: formData });
+    updateRoleMutation.mutate(formData, {
+      onSuccess: () => {
+        toast.success('Role permissions updated successfully!');
+        setIsModalOpen(false);
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || 'Failed to update role.');
+      },
+    });
   };
 
   if (isLoading) {
@@ -111,7 +101,7 @@ const RolesPage = () => {
         onClose={handleModalClose}
         onSubmit={handleFormSubmit}
         role={selectedRole}
-        isLoading={isUpdating}
+        isLoading={updateRoleMutation.isLoading}
       />
     </Box>
   );
