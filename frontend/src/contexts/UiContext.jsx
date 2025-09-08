@@ -65,7 +65,7 @@ export function UiProvider({ children }) {
   const { user } = useAuth();
   const abacEnabled = String(import.meta.env.VITE_ENABLE_ABAC ?? 'false').toLowerCase() === 'true';
   const menusQ = useQuery(
-    ['ui:menus'],
+    ['ui:menus', user?.id],
     async () => {
       const res = await getUIMenus();
       return res.data?.data ?? [];
@@ -74,7 +74,7 @@ export function UiProvider({ children }) {
   );
 
   const permsQ = useQuery(
-    ['ui:perms'],
+    ['ui:perms', user?.id],
     async () => {
       const res = await getUIPermissions();
       return new Set(res.data?.data || []);
@@ -83,7 +83,7 @@ export function UiProvider({ children }) {
   );
 
   const featsQ = useQuery(
-    ['ui:features'],
+    ['ui:features', user?.id],
     async () => {
       const res = await getUIFeatures();
       return res.data?.data || {};
@@ -93,7 +93,7 @@ export function UiProvider({ children }) {
 
   const loading = menusQ.isLoading || permsQ.isLoading || featsQ.isLoading;
   const abacQ = useQuery(
-    ['ui:abac'],
+    ['ui:abac', user?.id],
     async () => {
       try {
         const res = await getAbacPolicies();
