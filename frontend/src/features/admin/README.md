@@ -1,12 +1,15 @@
-# Customers Feature
+# Admin Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- AbacPolicies.jsx
+- MenuAccess.jsx
+- MenuManager.jsx
+- AbacPoliciesPage.lazy.jsx
+- MenuAccessPage.lazy.jsx
+- MenuManagerPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

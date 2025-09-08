@@ -1,12 +1,11 @@
-# Customers Feature
+# Settings Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Settings.jsx
+- SettingsPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

@@ -1,12 +1,11 @@
-# Customers Feature
+# Pos Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- POS.jsx
+- POSPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

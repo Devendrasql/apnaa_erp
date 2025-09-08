@@ -1,12 +1,11 @@
-# Customers Feature
+# Payments Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Payments.jsx
+- PaymentsPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- PaymentFormModal.jsx
 
 ## Hooks
 - None
