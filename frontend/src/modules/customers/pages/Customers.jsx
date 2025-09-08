@@ -23,7 +23,7 @@ import {
   deleteCustomer as apiDeleteCustomer,
   enrollCustomerFace
 } from '@shared/api';
-import CustomerFormModal from '@modules/customers/components/CustomerFormModal';
+import CustomerFormModal from '@/features/customers/components/CustomerFormModal';
 
 export default function CustomersPage() {
   // table state
