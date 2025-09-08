@@ -71,6 +71,11 @@ export const AuthProvider = ({ children }) => {
         if (p?.name) nameBag.add(String(p.name).toLowerCase());
       });
 
+
+      // If no permissions were present, proceed with an empty list.
+      // The backend should supply `effectivePermissions` during login; the
+      // frontend no longer falls back to fetching roles which required
+      // elevated rights and caused 403 errors for non-admin users.
       // Resolve from roles API if we still have none
       if (nameBag.size === 0) {
         const roleIds = extractRoleIds(u);
@@ -233,6 +238,6 @@ export const AuthProvider = ({ children }) => {
 //     {!loading && children}
 //   </AuthContext.Provider>
 // );
-// };
-
-export const useAuth = () => useContext(AuthContext);
+  //     {!loading && children}
+  //   </AuthContext.Provider>
+  // );

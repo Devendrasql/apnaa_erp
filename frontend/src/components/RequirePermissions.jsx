@@ -23,4 +23,6 @@ export default function RequirePermissions({ any = [], all = [], abac = [], to =
   const okAbac = !abacArr.length || abacArr.every((r) => canAbac(r.action, r.subject, r.ctx || {}));
 
   return okAny && okAll && okAbac ? children : <Navigate to={to} />;
+
 }
+
