@@ -1,6 +1,7 @@
 'use strict';
 
 const { executeQuery } = require('../../../../utils/database');
+const logger = require('../../../../utils/logger');
 
 let CACHE = { at: 0, items: [] };
 const TTL_MS = 30 * 1000;
@@ -34,7 +35,7 @@ function toSet(x) {
 }
 
 function evalNode(node, ctx) {
-  if (!node || typeof node !== 'object') return true;
+  if (!node || typeof node !== 'object') return false;
   if (node.all) return node.all.every(n => evalNode(n, ctx));
   if (node.any) return node.any.some(n => evalNode(n, ctx));
 
@@ -66,7 +67,8 @@ function evalNode(node, ctx) {
     const v = getPath(ctx, node.branchEquals) ?? node.branchEquals;
     return Number(ctx.branchId) === Number(v);
   }
-  return true;
+  logger.warn('Unsupported policy node encountered', node);
+  return false;
 }
 
 function evaluate(policies, ctx) {
