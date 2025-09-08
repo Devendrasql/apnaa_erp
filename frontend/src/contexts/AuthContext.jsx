@@ -57,11 +57,11 @@ export const AuthProvider = ({ children }) => {
   // fetch all permission names for the user’s roles, store into state + cookie
   const hydratePermissions = async (u) => {
     try {
-      const roleIds = extractRoleIds(u);
       const nameBag = new Set();
 
       // If backend already put permissions on user, merge them first
       const existing = []
+        .concat(u?.effectivePermissions || [])
         .concat(u?.permission_names || [])
         .concat(u?.permissions || [])
         .concat(u?.granted_permissions || []);
@@ -71,13 +71,21 @@ export const AuthProvider = ({ children }) => {
         if (p?.name) nameBag.add(String(p.name).toLowerCase());
       });
 
-      // Resolve from roles API (guaranteed)
-      for (const rid of roleIds) {
-        const res = await api.getRoleById(rid);
-        const role = res?.data?.data;
-        (role?.permissions || []).forEach((perm) => {
-          if (perm?.name) nameBag.add(String(perm.name).toLowerCase());
-        });
+      // Resolve from roles API if we still have none
+      if (nameBag.size === 0) {
+        const roleIds = extractRoleIds(u);
+        for (const rid of roleIds) {
+          try {
+            const res = await api.getRoleById(rid);
+            const role = res?.data?.data;
+            (role?.permissions || []).forEach((perm) => {
+              if (perm?.name) nameBag.add(String(perm.name).toLowerCase());
+            });
+          } catch (err) {
+            // ignore role fetch errors; we'll proceed with what we have
+            console.error('getRoleById failed', err);
+          }
+        }
       }
 
       const names = Array.from(nameBag);
