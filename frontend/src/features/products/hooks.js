@@ -36,3 +36,4 @@ export function useDeleteProduct() {
 export function useSearchIngredients(params) {
   return useQuery(['products:ingredients', params], () => searchIngredients(params).then(r => r.data?.data ?? r.data), { enabled: !!params });
 }
+

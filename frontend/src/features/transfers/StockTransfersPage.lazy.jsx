@@ -1,2 +1,1 @@
-export { default } from '@/pages/StockTransfers';
-
+export { default } from '@/features/transfers/pages/StockTransfers';

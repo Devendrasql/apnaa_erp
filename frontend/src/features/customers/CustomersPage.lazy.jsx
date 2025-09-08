@@ -1,3 +1,2 @@
-// Lazy bridge to keep existing page working while migrating gradually
-export { default } from '@/pages/Customers';
-
+// Lazy bridge to keep existing route working during migration
+export { default } from '@/features/customers/pages/Customers';

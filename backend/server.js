@@ -2,6 +2,22 @@
 require('dotenv').config();
 
 const http = require('http');
+// Suppress specific Node deprecation warnings from third-party deps (e.g., util._extend DEP0060)
+// This keeps logs clean in production while we await upstream fixes.
+try {
+  const originalEmitWarning = process.emitWarning;
+  // eslint-disable-next-line no-underscore-dangle
+  process.emitWarning = function patchedEmitWarning(warning, ...args) {
+    try {
+      const msg = typeof warning === 'string' ? warning : (warning?.message || '');
+      const code = typeof warning === 'object' ? warning?.code : args?.[1];
+      if (code === 'DEP0060' || msg.includes('DEP0060') || msg.includes('util._extend')) {
+        return; // ignore this noisy deprecation from dependencies
+      }
+    } catch (_) {}
+    return originalEmitWarning.call(process, warning, ...args);
+  };
+} catch (_) {}
 // ===================================================================================
 // === THE FIX ===
 // The path is now corrected. From `server.js` in the root, it correctly

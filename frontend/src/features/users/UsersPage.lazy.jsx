@@ -1,3 +1,2 @@
-// Lazy bridge to keep existing page stable while migrating
-export { default } from '@/pages/Users';
-
+// Lazy bridge to keep route stable during migration
+export { default } from '@/features/users/pages/Users';

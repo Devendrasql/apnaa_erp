@@ -9,36 +9,24 @@ import { createTheme, ThemeProvider, alpha } from '@mui/material/styles';
 
 import {
   Menu as MenuIcon,
-  Dashboard,
-  PointOfSale,
-  People,
-  Assessment,
   Logout,
   AccountCircle,
-  Storefront,
-  LocalShipping,
-  ManageAccounts,
-  Category,
-  Payment,
-  SwapHoriz as InventoryTwoTone,
   Settings,
   ExpandLess,
   ExpandMore,
   Business,
-  ShoppingCartCheckout,
   ArrowDropDown,
-  AdminPanelSettings,
-  Inventory2 as ProductsIcon,
-  Scale as UomIcon,
-  Medication as DosageIcon,
-  Storage as RackIcon,
-  Percent as DiscountIcon,
   Brightness4,
   Brightness7,
-  ShoppingCart
+  Inventory2 as ProductsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { PRIMARY as PRIMARY_BASE, MASTERS, PRODUCT_MASTERS } from '@/app/menuConfig';
+import { mergeMenus, flattenMenus, buildTreeFromFlat } from '@/app/menuUtils';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import { useUi } from '@/contexts/UiContext';
+import { iconForKey } from '@/components/icons';
 
 // ----------------- Constants & Tokens -----------------
 const TOKENS = {
@@ -81,7 +69,7 @@ const STORAGE_KEYS = {
 };
 
 // ----------------- Nav Definitions -----------------
-const PRIMARY = [
+/*
   { key: 'dashboard', label: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   { key: 'pos', label: 'POS', icon: <PointOfSale />, path: '/pos' },
   { key: 'sales', label: 'Sales', icon: <Assessment />, path: '/sales' },
@@ -94,7 +82,7 @@ const PRIMARY = [
   { key: 'reports', label: 'Reports', icon: <Assessment />, path: '/reports' },
 ];
 
-const MASTERS = [
+const MASTERS_OLD = [
   { key: 'branches', label: 'Branches', icon: <Storefront />, path: '/branches' },
   { key: 'customers', label: 'Customers', icon: <People />, path: '/customers' },
   { key: 'suppliers', label: 'Suppliers', icon: <LocalShipping />, path: '/suppliers' },
@@ -106,7 +94,7 @@ const MASTERS = [
 
 ];
 
-const PRODUCT_MASTERS = [
+const PRODUCT_MASTERS_OLD = [
   { key: 'products', label: 'All Products', icon: <ProductsIcon fontSize="small" />, path: '/products' },
   { key: 'categories', label: 'Categories', icon: <Category fontSize="small" />, path: '/categories' },
   { key: 'manufacturers', label: 'Manufacturers', icon: <Storefront fontSize="small" />, path: '/manufacturers' },
@@ -116,6 +104,7 @@ const PRODUCT_MASTERS = [
   { key: 'std-discounts', label: 'Standard Discounts', icon: <DiscountIcon fontSize="small" />, path: '/std-discounts' },
 ];
 
+*/
 // =====================================================
 
 const Layout = ({ children }) => {
@@ -128,6 +117,94 @@ const Layout = ({ children }) => {
   // ----------------- Menus -----------------
   const [userMenuEl, setUserMenuEl] = useState(null);
   const [branchMenuEl, setBranchMenuEl] = useState(null);
+  const { menus: serverMenus, can: canUi } = useUi();
+  // Merge server menus with local PRIMARY for completeness; prefer entries with valid path
+  const PRIMARY = useMemo(() => mergeMenus(PRIMARY_BASE, Array.isArray(serverMenus) ? serverMenus : []), [serverMenus]);
+
+  // Build masters and product masters trees from server (flattened) + local config
+  const serverFlat = useMemo(() => (
+    Array.isArray(serverMenus) && serverMenus.length ? flattenMenus(serverMenus) : []
+  ), [serverMenus]);
+
+  const mergedMastersFlat = useMemo(() => {
+    const base = MASTERS.map((m, i) => ({ key: m.key, label: m.label, path: m.path, perm: m.perm || null, group: 'MASTERS', order: 10 + i + 1, parent_key: null }));
+    const map = new Map();
+    const put = (o) => {
+      if (!o || !o.key) return;
+      const ex = map.get(o.key);
+      if (!ex) { map.set(o.key, o); return; }
+      const hasPath = !!String(o.path || '').trim();
+      const exHasPath = !!String(ex.path || '').trim();
+      if (hasPath && !exHasPath) map.set(o.key, { ...ex, ...o });
+    };
+    serverFlat.filter((x) => x.group === 'MASTERS').forEach(put);
+    base.forEach(put);
+    return Array.from(map.values());
+  }, [serverFlat]);
+
+  const mergedProductFlat = useMemo(() => {
+    const base = PRODUCT_MASTERS.map((m, i) => ({ key: m.key, label: m.label, path: m.path, perm: m.perm || null, group: 'PRODUCT_MASTERS', order: 20 + i + 1, parent_key: null }));
+    const map = new Map();
+    const put = (o) => {
+      if (!o || !o.key) return;
+      const ex = map.get(o.key);
+      if (!ex) { map.set(o.key, o); return; }
+      const hasPath = !!String(o.path || '').trim();
+      const exHasPath = !!String(ex.path || '').trim();
+      if (hasPath && !exHasPath) map.set(o.key, { ...ex, ...o });
+    };
+    serverFlat.filter((x) => x.group === 'PRODUCT_MASTERS').forEach(put);
+    base.forEach(put);
+    return Array.from(map.values());
+  }, [serverFlat]);
+
+  const mastersTree = useMemo(() => buildTreeFromFlat(mergedMastersFlat), [mergedMastersFlat]);
+  const productTree = useMemo(() => buildTreeFromFlat(mergedProductFlat), [mergedProductFlat]);
+
+  const renderNode = (row, depth = 0) => {
+    const pad = 2 + depth * 2;
+    const node = (
+      <ListItemButton
+        sx={{ ...navItemSx(isActive(row.path)), pl: pad }}
+        selected={isActive(row.path)}
+        onClick={() => row.path && navigate(row.path)}
+      >
+        <ListItemIcon>
+          <Box sx={{ color: isActive(row.path) ? theme.palette.primary.main : k.muted }}>
+            {row.icon || iconForKey(row.key)}
+          </Box>
+        </ListItemIcon>
+        <ListItemText primary={row.label} sx={labelSx} />
+      </ListItemButton>
+    );
+    const wrapper = (
+      <ListItem key={row.key} disablePadding>
+        {navCollapsed ? <Tooltip title={row.label} placement="right">{node}</Tooltip> : node}
+      </ListItem>
+    );
+    if (!row.children || !row.children.length) return wrapper;
+    return (
+      <React.Fragment key={row.key}>
+        {wrapper}
+        <List dense disablePadding>
+          {row.children.map((c) => renderNode(c, depth + 1))}
+        </List>
+      </React.Fragment>
+    );
+  };
+
+  // Build MAIN menus: merge server menus (if provided) with local PRIMARY, unique by key
+  const mainMenus = useMemo(() => {
+    const srv = Array.isArray(serverMenus) ? serverMenus : [];
+    const merged = [...srv, ...PRIMARY];
+    const seen = new Set();
+    return merged.filter((m) => {
+      const k = m && m.key;
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [serverMenus]);
 
   // ----------------- Persisted UI States -----------------
   // theme
@@ -422,18 +499,21 @@ const Layout = ({ children }) => {
       <List dense subheader={<ListSubheader disableSticky sx={subheadSx}>MAIN</ListSubheader>} sx={{ pt: 0.5 }}>
         {PRIMARY
           // ✅ Only hide if a permission is specified and the user is NOT elevated and doesn’t have it
-          .filter((it) => !it.perm || isElevated || hasPermission(it.perm))
+          .filter((it) => !it.perm || isElevated || hasPermission(it.perm) || canUi(it.perm))
           .map((it) => {
+            const disabled = !String(it.path || '').trim();
             const node = (
               <ListItemButton
                 sx={navItemSx(isActive(it.path))}
                 selected={isActive(it.path)}
+                disabled={disabled}
                 onClick={() => {
+                  if (disabled) return;
                   navigate(it.path);
                   if (!isDesktop) closeMobileDrawer();
                 }}
               >
-                <ListItemIcon>{it.icon}</ListItemIcon>
+                <ListItemIcon>{it.icon || iconForKey(it.key)}</ListItemIcon>
                 <ListItemText primary={it.label} sx={labelSx} />
               </ListItemButton>
             );
@@ -465,27 +545,7 @@ const Layout = ({ children }) => {
 
         {mastersOpen && (
           <List dense disablePadding sx={{ mt: 0.25 }}>
-            {MASTERS.map((row) => {
-              const node = (
-                <ListItemButton
-                  sx={navItemSx(isActive(row.path))}
-                  selected={isActive(row.path)}
-                  onClick={() => navigate(row.path)}
-                >
-                  <ListItemIcon>
-                    <Box sx={{ color: isActive(row.path) ? theme.palette.primary.main : k.muted }}>
-                      {row.icon}
-                    </Box>
-                  </ListItemIcon>
-                  <ListItemText primary={row.label} sx={labelSx} />
-                </ListItemButton>
-              );
-              return (
-                <ListItem key={row.key} disablePadding>
-                  {navCollapsed ? <Tooltip title={row.label} placement="right">{node}</Tooltip> : node}
-                </ListItem>
-              );
-            })}
+            {mastersTree.map((row) => renderNode(row, 0))}
 
             {/* Product Masters */}
             <ListItem disablePadding>
@@ -507,27 +567,7 @@ const Layout = ({ children }) => {
 
             {productMastersOpen && (
               <List dense disablePadding sx={{ mt: 0.25 }}>
-                {PRODUCT_MASTERS.map((row) => {
-                  const node = (
-                    <ListItemButton
-                      sx={navItemSx(isActive(row.path))}
-                      selected={isActive(row.path)}
-                      onClick={() => navigate(row.path)}
-                    >
-                      <ListItemIcon>
-                        <Box sx={{ color: isActive(row.path) ? theme.palette.primary.main : k.muted }}>
-                          {row.icon}
-                        </Box>
-                      </ListItemIcon>
-                      <ListItemText primary={row.label} sx={labelSx} />
-                    </ListItemButton>
-                  );
-                  return (
-                    <ListItem key={row.key} disablePadding>
-                      {navCollapsed ? <Tooltip title={row.label} placement="right">{node}</Tooltip> : node}
-                    </ListItem>
-                  );
-                })}
+                {productTree.map((row) => renderNode(row, 1))}
               </List>
             )}
           </List>
@@ -561,9 +601,12 @@ const Layout = ({ children }) => {
               </IconButton>
             </Box>
 
-            <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-              {pageTitle}{currentBranch ? ` (${currentBranch.name})` : ''}
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
+              <Typography variant="h6" noWrap>
+                {pageTitle}{currentBranch ? ` (${currentBranch.name})` : ''}
+              </Typography>
+              <Breadcrumbs />
+            </Box>
 
             {accessibleBranches && accessibleBranches.length > 1 && (
               <>
@@ -2227,3 +2270,5 @@ export default Layout;
 // // };
 
 // // export default Layout;
+
+

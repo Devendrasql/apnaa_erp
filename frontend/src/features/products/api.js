@@ -5,7 +5,7 @@ import {
   updateProduct as updateProductSvc,
   deleteProduct as deleteProductSvc,
   searchIngredients as searchIngredientsSvc,
-} from '@/services/api';
+} from '@shared/api';
 
 export const listProducts = (params) => getProductsSvc(params);
 export const getProductById = (id) => getProductByIdSvc(id);

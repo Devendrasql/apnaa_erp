@@ -4,7 +4,7 @@ import {
   createUser as createUserSvc,
   updateUser as updateUserSvc,
   deleteUser as deleteUserSvc,
-} from '@/services/api';
+} from '@shared/api';
 
 export const listUsers = (params) => getUsersSvc(params);
 export const getUserById = (id) => getUserByIdSvc(id);

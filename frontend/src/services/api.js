@@ -14,9 +14,123 @@ import Papa from 'papaparse'; // kept if you use it elsewhere
 // ------------------------------------------------------------
 // Base URL
 // ------------------------------------------------------------
-const BASE_URL = import.meta.env.VITE_API_URL || window.location.origin || 'http://localhost:3002';
+// Prefer explicit env; otherwise, in dev use Vite proxy (same-origin) if enabled
+const DEV_DEFAULT_API = import.meta.env.VITE_DEV_API_URL || 'http://localhost:3001';
+const isViteDev = !!import.meta.env.DEV;
+const hasProxyTarget = !!import.meta.env.VITE_API_PROXY_TARGET;
+const allowDevMocksTop = String(import.meta.env.VITE_DEV_MOCKS ?? 'false').toLowerCase() === 'true';
+const useProxy = hasProxyTarget && String(import.meta.env.VITE_USE_PROXY ?? 'true').toLowerCase() === 'true';
+let BASE_URL = import.meta.env.VITE_API_URL || '';
+if (isViteDev && (useProxy || allowDevMocksTop)) {
+  // Use relative URLs so Vite dev server proxy can forward to backend
+  BASE_URL = '';
+} else if (!BASE_URL) {
+  BASE_URL = isViteDev ? DEV_DEFAULT_API : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002');
+}
 axios.defaults.baseURL = BASE_URL;
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v2';
+
+// ------------------------------------------------------------
+// Dev request adapter mocks (avoid hitting network and 404s in dev)
+// ------------------------------------------------------------
+axios.interceptors.request.use((config) => {
+  const DEV = !!import.meta.env.DEV;
+  const allowDevMocks = String(import.meta.env.VITE_DEV_MOCKS ?? 'false').toLowerCase() === 'true';
+  if (!DEV || !allowDevMocks) return config;
+
+  const url = String(config.url || '');
+  const method = String(config.method || 'get').toLowerCase();
+  const wrap = (payload) => ({ status: 200, data: payload, headers: {}, config, request: null });
+  const setAdapter = (factory) => { config.adapter = async () => factory(); return config; };
+
+  try {
+    // Auth
+    if (url.includes(`${API_PREFIX}/auth/login`) && method === 'post') {
+      const now = Date.now();
+      const mockUser = {
+        id: 1, first_name: 'Dev', last_name: 'User', email: 'dev@example.com',
+        role_id: 1, default_branch_id: 1, branch_name: 'Main', accessibleBranches: [{ id: 1, name: 'Main' }],
+      };
+      return setAdapter(() => wrap({ data: { user: mockUser, accessToken: `dev.${now}.token`, refreshToken: `dev.${now}.refresh` } }));
+    }
+    if (url.includes(`${API_PREFIX}/auth/refresh`) && method === 'post') {
+      const now = Date.now();
+      return setAdapter(() => wrap({ data: { accessToken: `dev.${now}.token` } }));
+    }
+    if (url.includes(`${API_PREFIX}/ui/bootstrap`)) {
+      const mockUser = {
+        id: 1, first_name: 'Dev', last_name: 'User', email: 'dev@example.com',
+        role_id: 1, default_branch_id: 1, branch_name: 'Main', accessibleBranches: [{ id: 1, name: 'Main' }],
+      };
+      return setAdapter(() => wrap({ data: { data: { me: mockUser } } }));
+    }
+
+    // UI metadata
+    if (url.includes(`${API_PREFIX}/ui/menus`)) {
+      return setAdapter(() => wrap({ data: [
+        { key: 'dashboard', label: 'Dashboard', path: '/dashboard' },
+        { key: 'sales', label: 'Sales', path: '/sales' },
+        { key: 'inventory', label: 'Inventory', path: '/inventory' },
+      ] }));
+    }
+    if (url.includes(`${API_PREFIX}/ui/permissions`)) {
+      return setAdapter(() => wrap({ data: [] }));
+    }
+    if (url.includes(`${API_PREFIX}/ui/features`)) {
+      return setAdapter(() => wrap({ data: {} }));
+    }
+
+    // RBAC/roles
+    const roleMatch = url.match(new RegExp(`${API_PREFIX.replace(/\//g, '\\/')}/roles/(\\d+)`));
+    if (roleMatch) {
+      const id = Number(roleMatch[1] || '0');
+      return setAdapter(() => wrap({ data: { data: { id, name: `role_${id}`, permissions: [] } } }));
+    }
+
+    // Dashboard
+    if (url.includes(`${API_PREFIX}/dashboard/`)) {
+      return setAdapter(() => wrap({ data: [] }));
+    }
+  } catch {}
+
+  return config;
+});
+
+// Attach Authorization header from cookie if present
+axios.interceptors.request.use((config) => {
+  const token = Cookies.get('accessToken');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Refresh on 401 then retry once
+axios.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error?.config || {};
+    if (error?.response?.status === 401 && !original._retry && Cookies.get('refreshToken')) {
+      try {
+        original._retry = true;
+        const refreshToken = Cookies.get('refreshToken');
+        const res = await axios.post(`${API_PREFIX}/auth/refresh`, { refreshToken });
+        const accessToken = res?.data?.data?.accessToken;
+        if (accessToken) {
+          Cookies.set('accessToken', accessToken, { expires: 1 });
+          original.headers = original.headers || {};
+          original.headers.Authorization = `Bearer ${accessToken}`;
+          return axios.request(original);
+        }
+      } catch (e) {
+        Cookies.remove('accessToken');
+        Cookies.remove('refreshToken');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // ------------------------------------------------------------
 // Helpers
@@ -137,6 +251,68 @@ axios.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
+    const isNetworkError = !error.response;
+    const DEV = !!import.meta.env.DEV;
+    const allowDevMocks = String(import.meta.env.VITE_DEV_MOCKS ?? 'true').toLowerCase() === 'true';
+
+    // In dev, gracefully mock common UI endpoints when backend is unreachable
+    if ((isNetworkError || [404,502,503,504].includes(error?.response?.status)) && DEV && allowDevMocks && original?.url) {
+      const url = String(original.url || '');
+      const wrap = (payload) => ({ status: 200, data: payload, headers: {}, config: original, request: null });
+      try {
+        // Auth mocks
+        if (url.includes('/auth/login') && String(original.method || 'get').toLowerCase() === 'post') {
+          const now = Date.now();
+          const mockUser = {
+            id: 1,
+            first_name: 'Dev',
+            last_name: 'User',
+            email: 'dev@example.com',
+            role_id: 1,
+            default_branch_id: 1,
+            branch_name: 'Main',
+          };
+          return wrap({ data: { user: mockUser, accessToken: `dev.${now}.token`, refreshToken: `dev.${now}.refresh` } });
+        }
+        if (url.includes('/auth/refresh') && String(original.method || 'get').toLowerCase() === 'post') {
+          const now = Date.now();
+          return wrap({ data: { accessToken: `dev.${now}.token` } });
+        }
+        if (url.includes('/ui/bootstrap')) {
+          const mockUser = {
+            id: 1,
+            first_name: 'Dev',
+            last_name: 'User',
+            email: 'dev@example.com',
+            role_id: 1,
+            default_branch_id: 1,
+            branch_name: 'Main',
+            accessibleBranches: [{ id: 1, name: 'Main' }],
+          };
+          return wrap({ data: { data: { me: mockUser } } });
+        }
+        if (url.includes('/ui/menus')) {
+          return wrap({ data: [
+            { key: 'dashboard', label: 'Dashboard', path: '/dashboard' },
+            { key: 'sales', label: 'Sales', path: '/sales' },
+            { key: 'inventory', label: 'Inventory', path: '/inventory' },
+          ]});
+        }
+        if (url.includes('/ui/permissions')) {
+          return wrap({ data: [] });
+        }
+        if (url.includes('/ui/features')) {
+          return wrap({ data: {} });
+        }
+        if (/\/roles\/(\d+)/.test(url)) {
+          const id = Number((url.match(/\/roles\/(\d+)/) || [])[1] || '0');
+          return wrap({ data: { data: { id, name: `role_${id}`, permissions: [] } } });
+        }
+        if (url.includes('/dashboard/')) {
+          return wrap({ data: [] });
+        }
+      } catch {}
+    }
     if (error.response?.status === 401 && !original._retry && Cookies.get('refreshToken')) {
       try {
         original._retry = true;
@@ -450,223 +626,70 @@ export const deleteStdDiscount = api.deleteStdDiscount;
 export const enrollCustomerFace = api.enrollCustomerFace;
 export const identifyCustomerFace = api.identifyCustomerFace;
 
-// UI menu bindings (only if your backend has these endpoints)
-api.getMenuBindings = (role_id) => axios.get(`${API_PREFIX}/ui/menus/bindings`, { params: { role_id } });
-api.updateMenuBindings = (payload) => axios.put(`${API_PREFIX}/ui/menus/bindings`, payload);
+// UI menu bindings
+// Use backend when VITE_MENU_BINDINGS_BACKEND === 'true', otherwise store in localStorage
+const MENU_BINDINGS_BACKEND = String(import.meta.env.VITE_MENU_BINDINGS_BACKEND || '').toLowerCase() === 'true';
+api.getMenuBindings = async (role_id) => {
+  if (!MENU_BINDINGS_BACKEND) {
+    const key = `ui:menu-bindings:${role_id}`;
+    const bindings = JSON.parse(localStorage.getItem(key) || '[]');
+    return { data: { bindings } };
+  }
+  // Backend mode
+  return axios.get(`${API_PREFIX}/ui/menus/bindings`, {
+    params: { role_id },
+    validateStatus: () => true, // don't throw for 404; let caller/fallback handle
+  }).then((res) => {
+    if (res.status === 404) {
+      const key = `ui:menu-bindings:${role_id}`;
+      const bindings = JSON.parse(localStorage.getItem(key) || '[]');
+      return { data: { bindings } };
+    }
+    return res;
+  });
+};
+api.updateMenuBindings = async (payload) => {
+  const roleId = payload?.role_id;
+  const allowed = Array.isArray(payload?.allowed_keys) ? payload.allowed_keys : [];
+  if (!MENU_BINDINGS_BACKEND) {
+    const key = `ui:menu-bindings:${roleId}`;
+    localStorage.setItem(key, JSON.stringify(allowed));
+    return { data: { ok: true, bindings: allowed } };
+  }
+  // Backend mode
+  return axios.put(`${API_PREFIX}/ui/menus/bindings`, payload, {
+    validateStatus: () => true,
+  }).then((res) => {
+    if (res.status === 404) {
+      const key = `ui:menu-bindings:${roleId}`;
+      localStorage.setItem(key, JSON.stringify(allowed));
+      return { data: { ok: true, bindings: allowed } };
+    }
+    return res;
+  });
+};
 
 // named exports (optional)
 export const getMenuBindings = api.getMenuBindings;
 export const updateMenuBindings = api.updateMenuBindings;
 
+// ABAC
+export const getAbacPolicies = () => axios.get(`${API_PREFIX}/abac/policies`);
 
+// Seed menus (optional backend route)
+export const seedMenus = (payload) => axios.post(`${API_PREFIX}/ui/menus/seed`, payload);
 
+// Menu management (backend should implement these; seedMenus acts as upsert)
+export const upsertMenus = (items) => seedMenus({ items, mode: 'upsert' });
+export const deleteMenu = (key) => axios.delete(`${API_PREFIX}/ui/menus/${encodeURIComponent(key)}`);
 
-// import axios from 'axios';
-// import Cookies from 'js-cookie';
-// import toast from 'react-hot-toast';
-// import Papa from 'papaparse'; // Import PapaParse for CSV parsing
-
-// // Set base URL for all requests
-// axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-// // axios.defaults.headers.common['Cache-Control'] = 'no-store';
-// // axios.defaults.headers.common['Pragma'] = 'no-cache';
-// // axios.defaults.headers.common['Expires'] = '0';
-
-
-// // Request interceptor – attach access token if present
-// axios.interceptors.request.use((config) => {
-//   const token = Cookies.get('accessToken');
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
-// // Response interceptor – try refresh flow on 401
-// axios.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const original = error.config;
-
-//     if (error.response?.status === 401 && !original._retry && Cookies.get('refreshToken')) {
-//       try {
-//         original._retry = true;
-//         const refreshToken = Cookies.get('refreshToken');
-//         const res = await axios.post('/api/auth/refresh', { refreshToken });
-//         const { accessToken } = res.data.data;
-
-//         Cookies.set('accessToken', accessToken, { expires: 1 });
-//         original.headers.Authorization = `Bearer ${accessToken}`;
-//         return axios.request(original);
-//       } catch (refreshError) {
-//         Cookies.remove('accessToken');
-//         Cookies.remove('refreshToken');
-//         Cookies.remove('user');
-//         window.location.href = '/login';
-//         return Promise.reject(refreshError);
-//       }
-//     }
-
-//     // Optional toast for other errors
-//     if (error.response?.data?.message) {
-//       toast.error(error.response.data.message);
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// // API methods
-// export const api = {
-//   // Auth
-//   login: (credentials) => axios.post('/api/auth/login', credentials),
-//   logout: () => axios.post('/api/auth/logout'),
-//   changePassword: (data) => axios.post('/api/auth/change-password', data),
-
-//   // Dashboard
-//   getDashboardStats: (params) => axios.get('/api/dashboard/stats', { params }),
-//   getTopSellingProducts: (params) => axios.get('/api/dashboard/top-selling', { params }),
-//   getRecentSales: (params) => axios.get('/api/dashboard/recent-sales', { params }),
-//   getSalesOverTime: (params) => axios.get('/api/dashboard/sales-over-time', { params }),
-
-//   // Branches
-//   getBranches: (params) => axios.get('/api/branches', { params }),
-//   createBranch: (data) => axios.post('/api/branches', data),
-//   updateBranch: (id, data) => axios.put(`/api/branches/${id}`, data),
-//   deleteBranch: (id) => axios.delete(`/api/branches/${id}`),
-
-//   // Products
-//   getProducts: (params) => axios.get('/api/products', { params }),
-//   getProductById: (id) => axios.get(`/api/products/${id}`),
-//   // getProductLookups: () => axios.get('/api/products/lookups'),
-//   getProductLookups: (params) => axios.get('/api/products/lookups', { params }),
-//   createProduct: (data) => axios.post('/api/products', data),
-//   updateProduct: (id, data) => axios.put(`/api/products/${id}`, data),
-//   deleteProduct: (id) => axios.delete(`/api/products/${id}`),
-//   // ✅ hits your backend route; do NOT import server code
-//   searchIngredients: (params) => axios.get('/api/products/ingredients', { params }),
-
-//   // // Brands
-//   // getBrands: (params) => axios.get('/api/brands', { params }),
-//   // getBrandById: (id) => axios.get(`/api/brands/${id}`),
-//   // createBrand: (data) => axios.post('/api/brands', data),
-//   // updateBrand: (id, data) => axios.put(`/api/brands/${id}`, data),
-//   // deleteBrand: (id) => axios.delete(`/api/brands/${id}`),
-
-//   // // Manufacturers
-//   // getManufacturers: (params) => axios.get('/api/manufacturers', { params }),
-//   // getManufacturerById: (id) => axios.get(`/api/manufacturers/${id}`),
-//   // createManufacturer: (data) => axios.post('/api/manufacturers', data),
-//   // updateManufacturer: (id, data) => axios.put(`/api/manufacturers/${id}`, data),
-//   // deleteManufacturer: (id) => axios.delete(`/api/manufacturers/${id}`),
-//   // importManufacturers: (payload) => axios.post('/api/manufacturers/import', payload),
-
-//   // Manufacturer + Brand unified API
-//   getMfgBrands: (params) => axios.get('/api/mfg-brands', { params }),
-//   getMfgBrandById: (id) => axios.get(`/api/mfg-brands/${id}`),
-//   createMfgBrand: (data) => axios.post('/api/mfg-brands', data),
-//   updateMfgBrand: (id, data) => axios.put(`/api/mfg-brands/${id}`, data),
-//   toggleMfgActive: (id, is_active) => axios.patch(`/api/mfg-brands/${id}/active`, { is_active }),
-//   importManufacturers: (payload) => axios.post('/api/mfg-brands/import', payload),
-  
-
-//   // Categories
-//   getCategories: () => axios.get('/api/categories'),
-//   createCategory: (data) => axios.post('/api/categories', data),
-//   updateCategory: (id, data) => axios.put(`/api/categories/${id}`, data),
-//   deleteCategory: (id) => axios.delete(`/api/categories/${id}`),
-
-//   // Inventory
-//   getStock: (params) => axios.get('/api/inventory/stock', { params }),
-//   addStock: (data) => axios.post('/api/inventory/add-stock', data),
-//   adjustStock: (data) => axios.post('/api/inventory/adjust-stock', data),
-
-//   // Sales
-//   getSales: (params) => axios.get('/api/sales', { params }),
-//   createSale: (data) => axios.post('/api/sales', data),
-//   getSaleDetails: (id) => axios.get(`/api/sales/${id}`),
-
-//   // Customers
-//   getCustomers: (params) => axios.get('/api/customers', { params }),
-//   createCustomer: (data) => axios.post('/api/customers', data),
-//   updateCustomer: (id, data) => axios.put(`/api/customers/${id}`, data),
-//   deleteCustomer: (id) => axios.delete(`/api/customers/${id}`),
-
-//   // Suppliers
-//   getSuppliers: (params) => axios.get('/api/suppliers', { params }),
-//   createSupplier: (data) => axios.post('/api/suppliers', data),
-//   updateSupplier: (id, data) => axios.put(`/api/suppliers/${id}`, data),
-//   deleteSupplier: (id) => axios.delete(`/api/suppliers/${id}`),
-//   getSupplierByGST: (gstNumber) => axios.get(`/api/suppliers/gst/${gstNumber}`),
-
-//   // Reports
-//   getDailySalesReport: (params) => axios.get('/api/reports/daily-sales', { params }),
-//   getInventoryReport: (params) => axios.get('/api/reports/inventory', { params }),
-//   getProductPerformanceReport: (params) => axios.get('/api/reports/product-performance', { params }),
-
-//   // Purchase Orders
-//   getPurchaseOrders: (params) => axios.get('/api/purchase-orders', { params }),
-//   createPurchaseOrder: (data) => axios.post('/api/purchase-orders', data),
-//   getPurchaseOrderById: (id) => axios.get(`/api/purchase-orders/${id}`),
-//   receivePurchaseOrder: (id, data) => axios.post(`/api/purchase-orders/${id}/receive`, data),
-
-//   // Purchases
-//   getAllPurchases: (params) => axios.get('/api/purchases', { params }),
-//   createPurchase: (data) => axios.post('/api/purchases', data),
-//   getPurchaseById: (id) => axios.get(`/api/purchases/${id}`),
-//   postPurchaseToStock: (id) => axios.post(`/api/purchases/${id}/post`),
-
-//   // Users
-//   getUsers: (params) => axios.get('/api/users', { params }),
-//   getUserById: (id) => axios.get(`/api/users/${id}`),
-//   createUser: (data) => axios.post('/api/users', data),
-//   updateUser: (id, data) => axios.put(`/api/users/${id}`, data),
-//   deleteUser: (id) => axios.delete(`/api/users/${id}`),
-
-//   // Payments
-//   getOutstandingSales: (params) => axios.get('/api/payments/outstanding', { params }),
-//   recordPayment: (data) => axios.post('/api/payments', data),
-
-//   // Stock Transfers
-//   getStockTransfers: (params) => axios.get('/api/stock-transfers', { params }),
-//   createStockTransfer: (data) => axios.post('/api/stock-transfers', data),
-//   getStockTransferById: (id) => axios.get(`/api/stock-transfers/${id}`),
-//   updateTransferStatus: (id, status) => axios.put(`/api/stock-transfers/${id}/status`, { status }),
-
-//   // Settings
-//   getSettings: () => axios.get('/api/settings'),
-//   updateSettings: (data) => axios.put('/api/settings', data),
-
-//   // Roles
-//   getAllRoles: () => axios.get('/api/roles'),
-//   getRoleById: (id) => axios.get(`/api/roles/${id}`),
-//   updateRole: (id, data) => axios.put(`/api/roles/${id}`, data),
-//   getAllPermissions: () => axios.get('/api/roles/permissions'),
-
-//   // Racks
-// getRacks: (params) => axios.get('/api/racks', { params }),
-// createRack: (data) => axios.post('/api/racks', data),
-// updateRack: (id, data) => axios.put(`/api/racks/${id}`, data),
-// deleteRack: (id) => axios.delete(`/api/racks/${id}`),
-
-// // Standard Discounts
-// getStdDiscounts: (params) => axios.get('/api/std-discounts', { params }),
-// createStdDiscount: (data) => axios.post('/api/std-discounts', data),
-// updateStdDiscount: (id, data) => axios.put(`/api/std-discounts/${id}`, data),
-// deleteStdDiscount: (id) => axios.delete(`/api/std-discounts/${id}`),
-
-// // -----------------------------
-//   // FACE: new endpoints (frontend)
-//   // -----------------------------
-
-//   // Enroll a face template for a known customer
-//   // payload: { imageBase64, org_id, imageUrl? }
-//   enrollCustomerFace: (customerId, payload) => axios.post(`/api/face/customers/${customerId}/enroll`, payload),
-
-//   // Identify a customer by a webcam frame (POS)
-//   // payload: { imageBase64, org_id, store_id?, pos_id? }
-//   identifyCustomerFace: (payload) => axios.post('/api/face/identify', payload),
-
-// };
-
-// export default api;
+// Role permission management (backend should implement one of these)
+export const updateRolePermissions = async (roleId, permissions) => {
+  // Try dedicated endpoint first
+  try {
+    const res = await axios.put(`${API_PREFIX}/roles/${roleId}/permissions`, { permissions });
+    if (res && res.status < 400) return res;
+  } catch {}
+  // Fallback to updating role with permissions array
+  return axios.put(`${API_PREFIX}/roles/${roleId}`, { permissions });
+};

@@ -3,7 +3,7 @@ import {
   getStockTransferById as getTransferByIdSvc,
   createStockTransfer as createTransferSvc,
   updateTransferStatus as updateTransferStatusSvc,
-} from '@/services/api';
+} from '@shared/api';
 
 export const listTransfers = (params) => getTransfersSvc(params);
 export const getTransferById = (id) => getTransferByIdSvc(id);

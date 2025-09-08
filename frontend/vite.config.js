@@ -1,61 +1,43 @@
-// frontend/vite.config.js
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, URL } from 'node:url';
 
-// __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const proxyTarget = env.VITE_API_PROXY_TARGET || '';
+  const target = proxyTarget || env.VITE_DEV_API_URL || env.VITE_API_URL || 'http://localhost:3002';
+  const useProxy = !!proxyTarget && String(env.VITE_USE_PROXY ?? 'true').toLowerCase() === 'true';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'), // now "@/..." points to frontend/src
-    },
-  },
-  server: {
-    port: 3000,
-    open: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
+        '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+        '@modules': fileURLToPath(new URL('./src/modules', import.meta.url)),
+        '@features': fileURLToPath(new URL('./src/features', import.meta.url)),
+        '@pages': fileURLToPath(new URL('./src/pages', import.meta.url)),
+        '@components': fileURLToPath(new URL('./src/components', import.meta.url)),
       },
     },
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-  },
+    server: useProxy
+      ? {
+          proxy: {
+            // Adjust if your API prefix differs
+            '/api': {
+              target,
+              changeOrigin: true,
+              secure: false,
+              configure: (proxy) => {
+                // Swallow connection refused noise during dev when backend is down
+                proxy.on('error', (err, req, res) => {
+                  // Optional: console.warn('[proxy]', err?.code || err?.message);
+                });
+              },
+            },
+          },
+        }
+      : undefined,
+  };
 });
-
-
-
-
-
-
-
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
-
-// export default defineConfig({
-//   plugins: [react()],
-//   server: {
-//     port: 3000,
-//     open: true,
-//     proxy: {
-//       '/api': {
-//         target: 'http://localhost:3001',
-//         changeOrigin: true,
-//         secure: false
-//       }
-//     }
-//   },
-//   build: {
-//     outDir: 'dist',
-//     sourcemap: true
-//   }
-// })

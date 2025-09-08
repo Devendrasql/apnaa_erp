@@ -1,3 +1,2 @@
-// Lazy bridge to keep existing page working while migrating gradually
-export { default } from '@/pages/Inventory';
-
+// Lazy bridge to keep route stable during migration
+export { default } from '@/features/inventory/pages/Inventory';

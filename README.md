@@ -30,6 +30,10 @@ PharmaCare ERP is a comprehensive pharmacy management system designed for multi-
 - **Routing**: React Router v6
 - **Forms**: React Hook Form
 
+### Frontend Architecture & Docs
+- Architecture overview: `docs/frontend/architecture.md`
+- Per-feature docs (single source of truth): `docs/frontend/features/`
+
 ### Mobile App
 - **Framework**: React Native 0.72
 - **Navigation**: React Navigation v6

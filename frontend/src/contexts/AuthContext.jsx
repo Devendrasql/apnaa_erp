@@ -124,16 +124,21 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     // v2 login
     const response = await loginApi(credentials);
-    const { user: u, accessToken, refreshToken } = response.data.data;
+    const { user: u, accessToken, refreshToken } = response.data.data || {};
 
-    // Persist tokens
-    Cookies.set('accessToken', accessToken, { expires: 1 });
+    // Persist tokens (needed for subsequent bootstrap call)
+    if (accessToken) Cookies.set('accessToken', accessToken, { expires: 1 });
     if (refreshToken) Cookies.set('refreshToken', refreshToken, { expires: 7 });
 
-    // Fetch bootstrap (menus, permissions, features) after login
-    const boot = await getUIBootstrap();
-    const data = boot?.data?.data || {};
-    const mergedUser = { ...(data.me || u) };
+    // Try bootstrap (menus, permissions, features). Fall back to login user on error (403/Network)
+    let mergedUser = { ...(u || {}) };
+    try {
+      const boot = await getUIBootstrap();
+      const data = boot?.data?.data || {};
+      if (data.me) mergedUser = { ...data.me };
+    } catch (e) {
+      // proceed with login payload; permissions hydration will fill missing bits
+    }
 
     // Set user + branches
     setUser(mergedUser);
@@ -176,8 +181,9 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (...keys) => {
     if (elevated) return true; // admin/manager override
     if (!keys?.length) return false;
-    const bag = new Set((permissionNames || []).map((s) => String(s).toLowerCase()));
-    return keys.some((k) => bag.has(String(k).toLowerCase()));
+    const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const bag = new Set((permissionNames || []).map(norm));
+    return keys.some((k) => bag.has(norm(k)));
   };
 
 
