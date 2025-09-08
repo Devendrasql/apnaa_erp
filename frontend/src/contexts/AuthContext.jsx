@@ -57,11 +57,11 @@ export const AuthProvider = ({ children }) => {
   // fetch all permission names for the user’s roles, store into state + cookie
   const hydratePermissions = async (u) => {
     try {
-      const roleIds = extractRoleIds(u);
       const nameBag = new Set();
 
       // If backend already put permissions on user, merge them first
       const existing = []
+        .concat(u?.effectivePermissions || [])
         .concat(u?.permission_names || [])
         .concat(u?.permissions || [])
         .concat(u?.granted_permissions || []);
@@ -71,14 +71,10 @@ export const AuthProvider = ({ children }) => {
         if (p?.name) nameBag.add(String(p.name).toLowerCase());
       });
 
-      // Resolve from roles API (guaranteed)
-      for (const rid of roleIds) {
-        const res = await api.getRoleById(rid);
-        const role = res?.data?.data;
-        (role?.permissions || []).forEach((perm) => {
-          if (perm?.name) nameBag.add(String(perm.name).toLowerCase());
-        });
-      }
+      // If no permissions were present, proceed with an empty list.
+      // The backend should supply `effectivePermissions` during login; the
+      // frontend no longer falls back to fetching roles which required
+      // elevated rights and caused 403 errors for non-admin users.
 
       const names = Array.from(nameBag);
       setPermissionNames(names);
