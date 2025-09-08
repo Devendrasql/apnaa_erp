@@ -26,7 +26,7 @@ export function evaluate(policy, ctx = {}) {
       conds = null;
     }
   }
-  if (!conds) return true;
+  if (!conds) return false;
 
   const get = (path) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), ctx);
 
@@ -41,7 +41,7 @@ export function evaluate(policy, ctx = {}) {
 
   // Minimal JSONLogic: {"==": [ {"var":"field"}, value ] } and {"in": [ {"var":"field"}, [..] ]}
   const evalJson = (rule) => {
-    if (!rule || typeof rule !== 'object') return true;
+    if (!rule || typeof rule !== 'object') return false;
     if (rule.var) return get(String(rule.var));
     if (rule['==']) {
       const [a, b] = rule['=='];
