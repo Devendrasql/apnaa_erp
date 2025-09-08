@@ -30,7 +30,7 @@ import toast from 'react-hot-toast';
 
 import { api } from '@shared/api';
 import { useAuth } from '@/contexts/AuthContext';
-import PurchaseFormModal from '@modules/purchases/components/PurchaseFormModal';
+import PurchaseFormModal from '@features/purchases/components/PurchaseFormModal';
 
 const PurchasesPage = () => {
   const { currentBranch } = useAuth(); // 2. Get the currently selected branch
