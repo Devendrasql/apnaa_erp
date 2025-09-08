@@ -121,8 +121,10 @@ class AuthService {
         await executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [userRow.id]);
 
         const user = sanitizeUser(userRow);
+        // expose permissions to clients so they don't need to look up roles
         user.effectivePermissions = permissionNames;
-        
+        user.permission_names = permissionNames;
+
         return { user, accessToken, refreshToken: session.refreshToken };
     }
 

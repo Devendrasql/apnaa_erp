@@ -78,8 +78,9 @@ export const AuthProvider = ({ children }) => {
       // The backend should supply `effectivePermissions` during login; the
       // frontend no longer falls back to fetching roles which required
       // elevated rights and caused 403 errors for non-admin users.
-      // Resolve from roles API if we still have none
-      if (nameBag.size === 0) {
+      // Resolve from roles API only for elevated users or if explicitly allowed
+      // via a flag on the user object (e.g. during setup or debugging)
+      if (nameBag.size === 0 && (elevated || u?.allowRoleFetch)) {
         const roleIds = extractRoleIds(u);
         for (const rid of roleIds) {
           try {
