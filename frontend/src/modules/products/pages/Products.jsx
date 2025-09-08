@@ -29,7 +29,7 @@ import { api } from '@shared/api';
 import { useProducts, useDeleteProduct } from '@modules/products/hooks';
 import { getProductById } from '@modules/products/api';
 import { normalizeProductDetail } from '@modules/products/utils';
-import ProductFormModal from '@modules/products/components/ProductFormModal';
+import ProductFormModal from '@/features/products/components/ProductFormModal';
 
 const ProductsPage = () => {
   const [page, setPage] = useState(0);
