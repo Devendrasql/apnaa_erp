@@ -30,7 +30,7 @@ import toast from 'react-hot-toast';
 
 import { api } from '@shared/api';
 import { useAuth } from '@/contexts/AuthContext';
-import PurchaseOrderFormModal from '@modules/purchases/components/PurchaseOrderFormModal';
+import PurchaseOrderFormModal from '@features/purchases/components/PurchaseOrderFormModal';
 
 const statusColors = {
   pending: 'warning',
@@ -257,7 +257,7 @@ export default PurchaseOrdersPage;
 // import toast from 'react-hot-toast';
 
 // import { api } from '@shared/api';
-// import PurchaseOrderFormModal from '@modules/purchases/components/PurchaseOrderFormModal';
+// import PurchaseOrderFormModal from '@features/purchases/components/PurchaseOrderFormModal';
 
 // const statusColors = {
 //   pending: 'warning',

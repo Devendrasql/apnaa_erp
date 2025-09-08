@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 import { api } from '@shared/api';
 import { useNavigate } from 'react-router-dom';
-import MfgBrandModal from '@modules/manufacturers/components/MfgBrandModal';
+import MfgBrandModal from '@features/manufacturers/components/MfgBrandModal';
 
 function toCSV(rows) {
   const esc = (v) => {
