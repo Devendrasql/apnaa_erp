@@ -1,12 +1,11 @@
-# Customers Feature
+# Dashboard Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Dashboard.jsx
+- DashboardPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

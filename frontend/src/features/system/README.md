@@ -1,12 +1,15 @@
-# Customers Feature
+# System Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Login.jsx
+- NotAuthorized.jsx
+- NotFound.jsx
+- LoginPage.lazy.jsx
+- NotAuthorizedPage.lazy.jsx
+- NotFoundPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

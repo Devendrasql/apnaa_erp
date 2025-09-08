@@ -1,12 +1,11 @@
-# Customers Feature
+# Account Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Profile.jsx
+- ProfilePage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- None
 
 ## Hooks
 - None

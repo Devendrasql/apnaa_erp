@@ -1,13 +1,11 @@
-# Transfers Feature
+# Products Feature
 
 ## Pages
-- StockTransferDetail.jsx
-- StockTransfers.jsx
-- StockTransferDetailPage.lazy.jsx
-- StockTransfersPage.lazy.jsx
+- Products.jsx
+- ProductsPage.lazy.jsx
 
 ## Components
-- StockTransferFormModal.jsx
+- ProductFormModal.jsx
 
 ## Hooks
 - hooks.js

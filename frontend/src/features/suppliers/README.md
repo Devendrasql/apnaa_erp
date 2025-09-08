@@ -1,12 +1,11 @@
-# Customers Feature
+# Suppliers Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Suppliers.jsx
+- SuppliersPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- SupplierFormModal.jsx
 
 ## Hooks
 - None

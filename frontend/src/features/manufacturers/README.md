@@ -1,12 +1,13 @@
-# Customers Feature
+# Manufacturers Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- ManufacturerImport.jsx
+- MfgBrandManager.jsx
+- ManufacturerImportPage.lazy.jsx
+- MfgBrandManagerPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- MfgBrandModal.jsx
 
 ## Hooks
 - None

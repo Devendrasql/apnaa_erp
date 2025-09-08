@@ -1,12 +1,11 @@
-# Customers Feature
+# Branches Feature
 
 ## Pages
-- Customers.jsx
-- CustomersPage.lazy.jsx
+- Branches.jsx
+- BranchesPage.lazy.jsx
 
 ## Components
-- AddCustomerDialog.jsx
-- CustomerFormModal.jsx
+- BranchFormModal.jsx
 
 ## Hooks
 - None
