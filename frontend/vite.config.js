@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
         '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
         '@features': fileURLToPath(new URL('./src/features', import.meta.url)),
-        '@pages': fileURLToPath(new URL('./src/pages', import.meta.url)),
+        // Reintroduce '@pages' alias when a global pages directory exists.
         '@components': fileURLToPath(new URL('./src/components', import.meta.url)),
       },
     },
