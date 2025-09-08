@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [permissionNames, setPermissionNames] = useState([]); // ['pos.discount.edit', ...]
   const [loading, setLoading] = useState(true);
+  const [permLoading, setPermLoading] = useState(true);
 
   // Branch mgmt
   const [accessibleBranches, setAccessibleBranches] = useState([]);
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }) => {
 
   // fetch all permission names for the user’s roles, store into state + cookie
   const hydratePermissions = async (u) => {
+    setPermLoading(true);
     try {
       const nameBag = new Set();
 
@@ -104,6 +106,8 @@ export const AuthProvider = ({ children }) => {
       // If something fails, keep going with empty permissions (elevated roles still work)
       console.error('hydratePermissions failed', e);
       setPermissionNames([]);
+    } finally {
+      setPermLoading(false);
     }
   };
 
@@ -128,6 +132,8 @@ export const AuthProvider = ({ children }) => {
 
         // permissions
         await hydratePermissions(u);
+      } else {
+        setPermLoading(false);
       }
       setLoading(false);
     })();
@@ -174,6 +180,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setPermissionNames([]);
+    setPermLoading(false);
     setAccessibleBranches([]);
     setCurrentBranch(null);
     Cookies.remove('user');
@@ -192,6 +199,7 @@ export const AuthProvider = ({ children }) => {
 
   // single source of truth for permission checks from components
   const hasPermission = (...keys) => {
+    if (permLoading) return false;
     if (elevated) return true; // admin/manager override
     if (!keys?.length) return false;
     const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -204,6 +212,7 @@ export const AuthProvider = ({ children }) => {
     () => ({
       user,
       loading,
+      permLoading,
       login,
       logout,
       accessibleBranches,
@@ -213,10 +222,14 @@ export const AuthProvider = ({ children }) => {
       hasPermission,
       isElevated: elevated,
     }),
-    [user, loading, accessibleBranches, currentBranch, permissionNames, elevated]
+    [user, loading, permLoading, accessibleBranches, currentBranch, permissionNames, elevated]
   );
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && !permLoading && children}
+    </AuthContext.Provider>
+  );
 };
 
 // const value = {
