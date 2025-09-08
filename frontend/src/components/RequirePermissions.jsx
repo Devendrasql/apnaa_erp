@@ -9,19 +9,18 @@ import { useUi } from '@/contexts/UiContext';
 // - abac: optional { action, subject, ctx } or array of such
 export default function RequirePermissions({ any = [], all = [], abac = [], to = '/403', children }) {
   const { hasPermission, isElevated } = useAuth();
-  const { canAbac } = useUi();
-  // Elevated roles may bypass checks
+  const { can: canUi, canAbac } = useUi();
+
+  // Elevated roles bypass all checks
   if (isElevated) return children;
 
-  const okAny = !any?.length || any.some((p) => hasPermission(p) || (typeof canAbac === 'function' && typeof p === 'string' && false) || (typeof useUi === 'function' ? false : false));
-  // Include UiContext.can for RBAC names supplied by /ui/permissions
-  const { can: canUi } = useUi();
-  const okAnyRbac = !any?.length || any.some((p) => hasPermission(p) || canUi(p));
-  const okAllRbac = !all?.length || all.every((p) => hasPermission(p) || canUi(p));
+  const anyArr = Array.isArray(any) ? any : [any];
+  const allArr = Array.isArray(all) ? all : [all];
+  const abacArr = Array.isArray(abac) ? abac : [abac];
 
-  const abacArr = Array.isArray(abac) ? abac : (abac ? [abac] : []);
+  const okAny = !anyArr.length || anyArr.some((p) => hasPermission(p) || canUi(p));
+  const okAll = !allArr.length || allArr.every((p) => hasPermission(p) || canUi(p));
   const okAbac = !abacArr.length || abacArr.every((r) => canAbac(r.action, r.subject, r.ctx || {}));
 
-  if (okAnyRbac && okAllRbac && okAbac) return children;
-  return <Navigate to={to} />;
+  return okAny && okAll && okAbac ? children : <Navigate to={to} />;
 }
