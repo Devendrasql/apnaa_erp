@@ -4,8 +4,8 @@ const express = require('express');
 const { authMiddleware } = require('../../../../../middleware/auth');
 const { loadPermissions } = require('../../../../../middleware/permissions');
 const Controller = require('./ui.controller');
-
 const router = express.Router();
+
 
 router.use(authMiddleware, loadPermissions);
 

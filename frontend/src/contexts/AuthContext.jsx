@@ -71,10 +71,27 @@ export const AuthProvider = ({ children }) => {
         if (p?.name) nameBag.add(String(p.name).toLowerCase());
       });
 
+
       // If no permissions were present, proceed with an empty list.
       // The backend should supply `effectivePermissions` during login; the
       // frontend no longer falls back to fetching roles which required
       // elevated rights and caused 403 errors for non-admin users.
+      // Resolve from roles API if we still have none
+      if (nameBag.size === 0) {
+        const roleIds = extractRoleIds(u);
+        for (const rid of roleIds) {
+          try {
+            const res = await api.getRoleById(rid);
+            const role = res?.data?.data;
+            (role?.permissions || []).forEach((perm) => {
+              if (perm?.name) nameBag.add(String(perm.name).toLowerCase());
+            });
+          } catch (err) {
+            // ignore role fetch errors; we'll proceed with what we have
+            console.error('getRoleById failed', err);
+          }
+        }
+      }
 
       const names = Array.from(nameBag);
       setPermissionNames(names);
@@ -183,7 +200,7 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-const value = useMemo(
+  const value = useMemo(
     () => ({
       user,
       loading,
@@ -202,25 +219,25 @@ const value = useMemo(
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
-  // const value = {
-  //   user,
-  //   loading,
-  //   login,
-  //   logout,
-  //   accessibleBranches,
-  //   currentBranch,
-  //   switchBranch,
-  //   // permissions
-  //   permissionNames,
-  //   hasPermission,
-  //   isElevated: elevated,
-  // };
+// const value = {
+//   user,
+//   loading,
+//   login,
+//   logout,
+//   accessibleBranches,
+//   currentBranch,
+//   switchBranch,
+//   // permissions
+//   permissionNames,
+//   hasPermission,
+//   isElevated: elevated,
+// };
 
-  // return (
-  //   <AuthContext.Provider value={value}>
+// return (
+//   <AuthContext.Provider value={value}>
+//     {!loading && children}
+//   </AuthContext.Provider>
+// );
   //     {!loading && children}
   //   </AuthContext.Provider>
   // );
-// };
-
-export const useAuth = () => useContext(AuthContext);

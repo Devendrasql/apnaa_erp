@@ -44,5 +44,8 @@ Define roles first, then refine with ABAC and menu rules to achieve industry‑g
 
 - On login the backend returns an `effectivePermissions` array for the user.
 - The frontend reuses this snapshot and avoids extra role lookups, preventing 403 errors for users without `roles:read` access.
+
 - UI metadata endpoints (`/api/v2/ui/*`) now require only authentication, allowing every logged‑in user to fetch their allowed menus and features.
 - If a user logs in and sees no menus, verify that their role has permissions assigned in the database. The frontend no longer tries to look up role details, so empty permission sets result in a minimal UI.
+- UI metadata endpoints (`/api/v2/ui/*`) now require only authentication, allowing every logged‑in user to fetch their allowed menus and features.
+
