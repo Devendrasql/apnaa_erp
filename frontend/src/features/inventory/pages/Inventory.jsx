@@ -34,8 +34,8 @@ import toast from 'react-hot-toast';
 import { api } from '@shared/api';
 import { useInventory, useAddStock, useAdjustStock } from '@/features/inventory/hooks';
 import { useAuth } from '@/contexts/AuthContext';
-import AddStockFormModal from '@/features/inventory/components/AddStockFormModal';
-import StockAdjustmentModal from '@/features/inventory/components/StockAdjustmentModal';
+import AddStockFormModal from '../components/AddStockFormModal';
+import StockAdjustmentModal from '../components/StockAdjustmentModal';
 
 const InventoryPage = () => {
   const { currentBranch } = useAuth();
