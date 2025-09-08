@@ -233,26 +233,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-// const value = {
-//   user,
-//   loading,
-//   login,
-//   logout,
-//   accessibleBranches,
-//   currentBranch,
-//   switchBranch,
-//   // permissions
-//   permissionNames,
-//   hasPermission,
-//   isElevated: elevated,
-// };
-
-// return (
-//   <AuthContext.Provider value={value}>
-//     {!loading && children}
-//   </AuthContext.Provider>
-// );
-  //     {!loading && children}
-  //   </AuthContext.Provider>
-  // );
