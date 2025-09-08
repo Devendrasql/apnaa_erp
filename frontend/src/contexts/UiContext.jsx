@@ -15,6 +15,50 @@ function buildTrailIndex(nodes) {
   return byPath;
 }
 
+// Minimal ABAC evaluator used by canAbac
+export function evaluate(policy, ctx = {}) {
+  let conds = policy?.conditions;
+  // Also accept string-based `condition` as JSONLogic
+  if (!conds && policy?.condition) {
+    try {
+      conds = JSON.parse(policy.condition);
+    } catch {
+      conds = null;
+    }
+  }
+  if (!conds) return true;
+
+  const get = (path) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), ctx);
+
+  // Support simple JSON object with equality and {in:[...]}
+  if (typeof conds === 'object' && !Array.isArray(conds) && !conds['=='] && !conds['in']) {
+    return Object.entries(conds).every(([field, expected]) => {
+      const actual = get(field);
+      if (expected && typeof expected === 'object' && Array.isArray(expected.in)) return expected.in.includes(actual);
+      return actual === expected;
+    });
+  }
+
+  // Minimal JSONLogic: {"==": [ {"var":"field"}, value ] } and {"in": [ {"var":"field"}, [..] ]}
+  const evalJson = (rule) => {
+    if (!rule || typeof rule !== 'object') return true;
+    if (rule.var) return get(String(rule.var));
+    if (rule['==']) {
+      const [a, b] = rule['=='];
+      return evalJson(a) === evalJson(b);
+    }
+    if (rule.in) {
+      const [a, arr] = rule.in;
+      const v = evalJson(a);
+      const list = Array.isArray(arr) ? arr : [];
+      return list.includes(v);
+    }
+    // Default deny if we can't evaluate
+    return false;
+  };
+  return evalJson(conds);
+}
+
 const UiContext = createContext(null);
 
 export function UiProvider({ children }) {
@@ -74,38 +118,6 @@ export function UiProvider({ children }) {
 
     const trailIndex = buildTrailIndex(menus);
     const findTrailByPath = (path) => trailIndex.get(path) || null;
-
-    // Minimal ABAC evaluator
-    const evaluate = (policy, ctx = {}) => {
-      let conds = policy?.conditions;
-      // Also accept string-based `condition` as JSONLogic
-      if (!conds && policy?.condition) {
-        try { conds = JSON.parse(policy.condition); } catch { conds = null; }
-      }
-      if (!conds) return true;
-
-      const get = (path) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), ctx);
-
-      // Support simple JSON object with equality and {in:[...]}
-      if (typeof conds === 'object' && !Array.isArray(conds) && !conds['=='] && !conds['in']) {
-        return Object.entries(conds).every(([field, expected]) => {
-          const actual = get(field);
-          if (expected && typeof expected === 'object' && Array.isArray(expected.in)) return expected.in.includes(actual);
-          return actual === expected;
-        });
-      }
-
-      // Minimal JSONLogic: {"==": [ {"var":"field"}, value ] } and {"in": [ {"var":"field"}, [..] ]}
-      const evalJson = (rule) => {
-        if (!rule || typeof rule !== 'object') return true;
-        if (rule.var) return get(String(rule.var));
-        if (rule['==']) { const [a,b]=rule['==']; return evalJson(a) === evalJson(b); }
-        if (rule.in) { const [a, arr]=rule.in; const v = evalJson(a); const list = Array.isArray(arr) ? arr : []; return list.includes(v); }
-        // Default allow if we can't evaluate
-        return true;
-      };
-      return evalJson(conds);
-    };
     const canAbac = (action, subject, ctx = {}) => {
       if (!abacEnabled) return true;
       const relevant = policies.filter((p) => p.action === action && (p.subject === subject || p.resource === subject));
