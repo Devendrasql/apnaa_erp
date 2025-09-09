@@ -26,6 +26,7 @@ export function evaluate(policy, ctx = {}) {
       conds = null;
     }
   }
+  // Default deny when no conditions provided
   if (!conds) return false;
 
   const get = (path) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), ctx);
@@ -50,10 +51,10 @@ export function evaluate(policy, ctx = {}) {
     if (rule.in) {
       const [a, arr] = rule.in;
       const v = evalJson(a);
-      const list = Array.isArray(arr) ? arr : [];
-      return list.includes(v);
+      if (!Array.isArray(arr)) return false;
+      return arr.includes(v);
     }
-    // Default deny if we can't evaluate
+    // Unsupported operations default to deny
     return false;
   };
   return evalJson(conds);
