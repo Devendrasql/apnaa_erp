@@ -26,7 +26,7 @@ export function evaluate(policy, ctx = {}) {
       conds = null;
     }
   }
-  // Default deny when no conditions provided
+  // Default deny when no conditions provided or parsed value is falsy
   if (!conds) return false;
 
   const get = (path) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), ctx);
@@ -42,7 +42,9 @@ export function evaluate(policy, ctx = {}) {
 
   // Minimal JSONLogic: {"==": [ {"var":"field"}, value ] } and {"in": [ {"var":"field"}, [..] ]}
   const evalJson = (rule) => {
+    // Unknown or non-object structures default to deny
     if (!rule || typeof rule !== 'object') return false;
+    if (Array.isArray(rule)) return false;
     if (rule.var) return get(String(rule.var));
     if (rule['==']) {
       const [a, b] = rule['=='];
