@@ -9,6 +9,15 @@ const normalizeRoleName = (r) => String(r || '').toLowerCase().replace(/\s+/g, '
 const isElevatedByRoleName = (name) =>
   ['super_admin', 'admin', 'manager', 'system_admin', 'sa'].includes(normalizeRoleName(name));
 
+// Check a user object for elevated privileges
+const isElevatedUser = (u) => {
+  const names = extractRoleNames(u);
+  if (names.some(isElevatedByRoleName)) return true;
+  // Optional flags backend might set
+  if (u?.is_admin || u?.isAdmin || u?.isManager) return true;
+  return false;
+};
+
 function extractRoleIds(user) {
   // support many shapes: {role_id}, {roles:[{id},..]}, {roles:[number,...]}
   const ids = new Set();
@@ -47,13 +56,7 @@ export const AuthProvider = ({ children }) => {
   const [accessibleBranches, setAccessibleBranches] = useState([]);
   const [currentBranch, setCurrentBranch] = useState(null);
 
-  const elevated = useMemo(() => {
-    const names = extractRoleNames(user);
-    if (names.some(isElevatedByRoleName)) return true;
-    // Optional flags your backend might set
-    if (user?.is_admin || user?.isAdmin || user?.isManager) return true;
-    return false;
-  }, [user]);
+  const elevated = useMemo(() => isElevatedUser(user), [user]);
 
   // fetch all permission names for the user’s roles, store into state + cookie
   const hydratePermissions = async (u) => {
@@ -80,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       // elevated rights and caused 403 errors for non-admin users.
       // Resolve from roles API only for elevated users or if explicitly allowed
       // via a flag on the user object (e.g. during setup or debugging)
-      if (nameBag.size === 0 && (elevated || u?.allowRoleFetch)) {
+      if (nameBag.size === 0 && (isElevatedUser(u) || u?.allowRoleFetch)) {
         const roleIds = extractRoleIds(u);
         for (const rid of roleIds) {
           try {
