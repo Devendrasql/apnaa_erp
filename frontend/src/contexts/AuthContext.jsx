@@ -85,7 +85,8 @@ export const AuthProvider = ({ children }) => {
       // elevated rights and caused 403 errors for non-admin users.
       // Resolve from roles API only for elevated users or if explicitly allowed
       // via a flag on the user object (e.g. during setup or debugging)
-      if (nameBag.size === 0 && (isElevatedUser(u) || u?.allowRoleFetch)) {
+      const allowRoleFetch = isElevatedUser(u) || u?.allowRoleFetch;
+      if (allowRoleFetch && nameBag.size === 0) {
         const roleIds = extractRoleIds(u);
         for (const rid of roleIds) {
           try {
