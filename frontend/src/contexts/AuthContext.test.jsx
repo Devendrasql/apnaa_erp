@@ -4,6 +4,7 @@ import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act } from 'react-dom/test-utils';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import api, { getUIBootstrap, login as loginApi } from '../services/api';
 import { AuthProvider, useAuth } from './AuthContext';
 
@@ -28,26 +29,48 @@ describe('AuthProvider', () => {
     });
     getUIBootstrap.mockResolvedValue({ data: { data: {} } });
 
-    let loginFn;
+    let loginFn, logoutFn;
     function Child() {
-      const { login } = useAuth();
+      const { login, logout } = useAuth();
       loginFn = login;
+      logoutFn = logout;
       return null;
     }
+
+    const queryClient = new QueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     const div = document.createElement('div');
     const root = ReactDOM.createRoot(div);
     await act(async () => {
       root.render(
-        <AuthProvider>
-          <Child />
-        </AuthProvider>,
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Child />
+          </AuthProvider>
+        </QueryClientProvider>,
       );
     });
 
     await act(async () => {
       await loginFn({ username: 'u', password: 'p' });
     });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:menus']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:perms']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:features']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:abac']);
+
+    invalidateSpy.mockClear();
+
+    await act(async () => {
+      logoutFn();
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:menus']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:perms']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:features']);
+    expect(invalidateSpy).toHaveBeenCalledWith(['ui:abac']);
 
     expect(api.getRoleById).not.toHaveBeenCalled();
   });
