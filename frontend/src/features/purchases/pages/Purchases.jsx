@@ -52,12 +52,16 @@ const PurchasesPage = () => {
   // 3. Update the useQuery hook to be branch-aware
   const { data, isLoading, error } = useQuery(
     ['purchases', page, rowsPerPage, filters, currentBranch?.id],
-    () => api.getAllPurchases({
-      page: page + 1,
-      limit: rowsPerPage,
-      branch_id: currentBranch?.id, // Always pass the current branch ID
-      ...filters
-    }),
+    () => {
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        branch_id: currentBranch?.id, // Always pass the current branch ID
+      };
+      if (filters.supplier_id) params.supplier_id = filters.supplier_id;
+      if (filters.search) params.search = filters.search;
+      return api.getAllPurchases(params);
+    },
     {
       enabled: !!currentBranch, // Only run query if a branch is selected
       keepPreviousData: true,

@@ -62,12 +62,17 @@ const PurchaseOrdersPage = () => {
   // 3. Update the useQuery hook to be branch-aware
   const { data, isLoading, error } = useQuery(
     ['purchaseOrders', page, rowsPerPage, filters, currentBranch?.id],
-    () => api.getPurchaseOrders({
-      page: page + 1,
-      limit: rowsPerPage,
-      branch_id: currentBranch?.id, // Always pass the current branch ID
-      ...filters
-    }),
+    () => {
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        branch_id: currentBranch?.id, // Always pass the current branch ID
+      };
+      if (filters.supplier_id) params.supplier_id = filters.supplier_id;
+      if (filters.status) params.status = filters.status;
+      if (filters.search) params.search = filters.search;
+      return api.getPurchaseOrders(params);
+    },
     {
       enabled: !!currentBranch, // Only run query if a branch is selected
       keepPreviousData: true,
