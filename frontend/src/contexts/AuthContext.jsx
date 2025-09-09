@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [permissionNames, setPermissionNames] = useState([]); // ['pos.discount.edit', ...]
   const [loading, setLoading] = useState(true);
+  // separate loading flag for permission hydration
   const [permLoading, setPermLoading] = useState(true);
 
   // Branch mgmt
@@ -242,7 +243,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && !permLoading && children}
+      {!loading && !permLoading ? children : null}
     </AuthContext.Provider>
   );
 };
