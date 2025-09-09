@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import Cookies from 'js-cookie';
+import { useQueryClient } from 'react-query';
 import api, { getUIBootstrap, setActiveBranchId, login as loginApi } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -57,6 +58,7 @@ export const AuthProvider = ({ children }) => {
   const [currentBranch, setCurrentBranch] = useState(null);
 
   const elevated = useMemo(() => isElevatedUser(user), [user]);
+  const queryClient = useQueryClient();
 
   // fetch all permission names for the user’s roles, store into state + cookie
   const hydratePermissions = async (u) => {
@@ -178,6 +180,10 @@ export const AuthProvider = ({ children }) => {
 
     // Hydrate permissions (fallback in case bootstrap didn’t include)
     await hydratePermissions(mergedUser);
+    queryClient.invalidateQueries(['ui:menus']);
+    queryClient.invalidateQueries(['ui:perms']);
+    queryClient.invalidateQueries(['ui:features']);
+    queryClient.invalidateQueries(['ui:abac']);
     return mergedUser;
   };
 
@@ -192,6 +198,10 @@ export const AuthProvider = ({ children }) => {
     Cookies.remove('refreshToken');
     Cookies.remove('accessibleBranches');
     Cookies.remove('currentBranch');
+    queryClient.invalidateQueries(['ui:menus']);
+    queryClient.invalidateQueries(['ui:perms']);
+    queryClient.invalidateQueries(['ui:features']);
+    queryClient.invalidateQueries(['ui:abac']);
   };
 
   const switchBranch = (branch) => {
