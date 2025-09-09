@@ -22,6 +22,16 @@ describe('evaluate', () => {
     expect(evaluate(policy, { user: { role: 'admin' } })).toBe(false);
   });
 
+  it('denies access when condition string is empty', () => {
+    const policy = { condition: '' };
+    expect(evaluate(policy, { user: { role: 'admin' } })).toBe(false);
+  });
+
+  it('denies access when conditions are null', () => {
+    const policy = { conditions: null };
+    expect(evaluate(policy, { role: 'admin' })).toBe(false);
+  });
+
   it('denies access for unknown operators', () => {
     const policy = { conditions: { unknown: [{ var: 'role' }, 'admin'] } };
     expect(evaluate(policy, { role: 'admin' })).toBe(false);
