@@ -4,6 +4,7 @@
 
 - JWT access tokens with refresh tokens; short-lived access tokens.
 - Enforce `authMiddleware` on protected routes and load permissions before controllers.
+- Role permissions are cached in-memory with an LRU (max 100 roles, 60s TTL) to limit repeated DB reads.
 - Favor least-privilege and capability checks; audit ABAC policies.
 
 ### Input Validation
