@@ -134,6 +134,14 @@ async function revokeSessionBySid(sid, reason = null) {
   );
 }
 
+async function revokeSessionsByRoleId(roleId, reason = null) {
+  if (!roleId) return;
+  await executeQuery(
+    `UPDATE auth_sessions SET revoked_at = NOW(), revoke_reason = ? WHERE role_id = ? AND revoked_at IS NULL`,
+    [reason, roleId]
+  );
+}
+
 /** Rotate refresh token in-place (refresh flow). */
 async function rotateRefreshToken(refreshToken) {
   if (!refreshToken) return null;
@@ -189,6 +197,7 @@ module.exports = {
   touchSessionLastSeen,
   revokeSessionBySid,
   rotateRefreshToken,
+  revokeSessionsByRoleId,
 };
 
 

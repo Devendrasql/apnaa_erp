@@ -17,9 +17,11 @@ import toast from 'react-hot-toast';
 import { useQueryClient } from 'react-query';
 import { useRoles, useUpdateRole } from '@/features/roles/hooks';
 import PermissionsFormModal from '@/features/roles/components/PermissionsFormModal';
+import FeaturesFormModal from '@/features/roles/components/FeaturesFormModal';
 
 const RolesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const queryClient = useQueryClient();
 
@@ -27,7 +29,9 @@ const RolesPage = () => {
   const updateRoleMutation = useUpdateRole(selectedRole?.id);
 
   const handleManagePermissions = (role) => { setSelectedRole(role); setIsModalOpen(true); };
+  const handleManageFeatures = (role) => { setSelectedRole(role); setIsFeaturesOpen(true); };
   const handleModalClose = () => { setIsModalOpen(false); setSelectedRole(null); };
+  const handleFeaturesClose = () => { setIsFeaturesOpen(false); setSelectedRole(null); };
   const handleFormSubmit = (formData) => {
     updateRoleMutation.mutate(formData, {
       onSuccess: () => { toast.success('Role permissions updated successfully!'); setIsModalOpen(false); },
@@ -57,6 +61,7 @@ const RolesPage = () => {
                 <TableCell>{role.description || '—'}</TableCell>
                 <TableCell align="right">
                   <Button size="small" variant="contained" onClick={() => handleManagePermissions(role)}>Permissions</Button>
+                  <Button size="small" sx={{ ml: 1 }} onClick={() => handleManageFeatures(role)}>Features</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -65,6 +70,7 @@ const RolesPage = () => {
       </TableContainer>
 
       <PermissionsFormModal open={isModalOpen} onClose={handleModalClose} onSubmit={handleFormSubmit} role={selectedRole} isLoading={updateRoleMutation.isLoading} />
+      <FeaturesFormModal open={isFeaturesOpen} onClose={handleFeaturesClose} role={selectedRole} />
     </Box>
   );
 };
