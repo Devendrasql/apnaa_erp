@@ -13,6 +13,7 @@ const {
   revokeSessionBySid,
   revokeAllSessionsForUser,
 } = require('../../../../../repositories/sessions');
+const { buildForUser } = require('../../../../../utils/menuBuilder');
 // ===================================================================================
 
 // Helper to sign JWT
@@ -44,31 +45,6 @@ async function getPermissionNamesForRole(roleId) {
     return rows.map(r => r.name);
 }
 
-// Helper to build menu snapshot
-function buildMenuSnapshot(permissionNames) {
-    const has = p => permissionNames.includes(p);
-    const mastersView = has('user:read') || has('product:read');
-    const mastersAdd = has('user:create') || has('product:create');
-    const mastersMod = has('user:update') || has('product:update');
-    const mastersDel = has('user:delete') || has('product:delete');
-    const salesView = has('sale:read') || has('sale:create');
-    const invView = has('report:view:inventory');
-    const repView = has('report:view:sales') || has('report:view:inventory');
-
-    return {
-        version: 1,
-        generatedAt: new Date().toISOString(),
-        windows: [
-            { code: 'dashboard', rights: { view: true, add: false, modify: false, delete: false } },
-            { code: 'pos',       rights: { view: has('sale:create'), add: has('sale:create'), modify: has('sale:cancel'), delete: false } },
-            { code: 'sales',     rights: { view: salesView, add: has('sale:create'), modify: has('sale:cancel'), delete: false } },
-            { code: 'inventory', rights: { view: invView, add: false, modify: false, delete: false } },
-            { code: 'report',    rights: { view: repView, add: false, modify: false, delete: false } },
-            { code: 'masters',   rights: { view: mastersView, add: mastersAdd, modify: mastersMod, delete: mastersDel } },
-        ],
-    };
-}
-
 // Helper to sanitize user object
 function sanitizeUser(row) {
     const clone = { ...row };
@@ -96,7 +72,7 @@ class AuthService {
         }
         
         const permissionNames = await getPermissionNamesForRole(userRow.role_id);
-        const menuSnapshot = buildMenuSnapshot(permissionNames);
+        const menuSnapshot = await buildForUser(userRow);
         
         const accessMs = parseDurationToMs(process.env.JWT_EXPIRES_IN, 3600_000);
         const refreshMs = parseDurationToMs(process.env.JWT_REFRESH_EXPIRES_IN, 7 * 86_400_000);
