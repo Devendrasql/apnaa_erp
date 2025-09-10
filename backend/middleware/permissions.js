@@ -2,14 +2,15 @@
 // Loads role permissions and exposes RBAC guards
 
 const { executeQuery } = require('../utils/database');
+const LRU = require('lru-cache');
 
 // very small cache to avoid repetitive DB hits per role for 60s
-const CACHE = new Map(); // role_id -> { at:number, perms:Set<string> }
 const TTL_MS = 60 * 1000;
+const CACHE = new LRU({ max: 100, ttl: TTL_MS });
 
 async function fetchRolePermissions(roleId) {
-    const hit = CACHE.get(roleId);
-    if (hit && Date.now() - hit.at < TTL_MS) return hit.perms;
+    let perms = CACHE.get(roleId);
+    if (perms) return perms;
 
     const rows = await executeQuery(
         `SELECT p.name
@@ -18,8 +19,8 @@ async function fetchRolePermissions(roleId) {
       WHERE rp.role_id = ?`,
         [roleId]
     );
-    const perms = new Set(rows.map(r => r.name));
-    CACHE.set(roleId, { at: Date.now(), perms });
+    perms = new Set(rows.map(r => r.name));
+    CACHE.set(roleId, perms);
     return perms;
 }
 
