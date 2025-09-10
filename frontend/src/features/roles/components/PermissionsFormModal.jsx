@@ -100,31 +100,48 @@ const PermissionsFormModal = ({ open, onClose, onSubmit, role, isLoading }) => {
               control={control}
               render={({ field }) => (
                 <Box>
-                  {allPermissions && Object.entries(allPermissions).map(([category, perms]) => (
-                    <Box key={category} sx={{ mb: 2 }}>
-                      <Typography variant="h6" gutterBottom>{category}</Typography>
-                      <FormGroup sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-                        {perms.map((permission) => (
-                          <FormControlLabel
-                            key={permission.id}
-                            control={
-                              <Checkbox
-                                checked={field.value.includes(permission.id)}
-                                onChange={(e) => {
-                                  const next = e.target.checked
-                                    ? [...field.value, permission.id]
-                                    : field.value.filter((id) => id !== permission.id);
-                                  field.onChange(next);
-                                }}
-                              />
-                            }
-                            label={permission.description || permission.name}
-                          />
+                  {allPermissions && Object.entries(allPermissions).map(([category, perms]) => {
+                    const byFeature = perms.reduce((acc, p) => {
+                      const [feature, action] = p.name.split(':');
+                      if (!acc[feature]) acc[feature] = {};
+                      acc[feature][action] = p;
+                      return acc;
+                    }, {});
+                    return (
+                      <Box key={category} sx={{ mb: 2 }}>
+                        <Typography variant="h6" gutterBottom>{category}</Typography>
+                        {Object.entries(byFeature).map(([feature, actions]) => (
+                          <Box key={feature} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Typography sx={{ width: 140, textTransform: 'capitalize' }}>{feature.replace(/_/g, ' ')}</Typography>
+                            <FormGroup row>
+                              {['create', 'read', 'update', 'delete'].map((action) => {
+                                const perm = actions[action];
+                                if (!perm) return null;
+                                return (
+                                  <FormControlLabel
+                                    key={action}
+                                    control={
+                                      <Checkbox
+                                        checked={field.value.includes(perm.id)}
+                                        onChange={(e) => {
+                                          const next = e.target.checked
+                                            ? [...field.value, perm.id]
+                                            : field.value.filter((id) => id !== perm.id);
+                                          field.onChange(next);
+                                        }}
+                                      />
+                                    }
+                                    label={action.charAt(0).toUpperCase() + action.slice(1)}
+                                  />
+                                );
+                              })}
+                            </FormGroup>
+                          </Box>
                         ))}
-                      </FormGroup>
-                      <Divider sx={{ mt: 2 }} />
-                    </Box>
-                  ))}
+                        <Divider sx={{ mt: 2 }} />
+                      </Box>
+                    );
+                  })}
                 </Box>
               )}
             />

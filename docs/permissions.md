@@ -2,6 +2,27 @@
 
 This guide explains how to manage user access in the ERP using roles, attribute rules and menu permissions.
 
+## CRUD permission mapping
+
+Common modules expose create/read/update/delete actions. Use the following keys when assigning permissions to roles:
+
+| Module | Create | Read | Update | Delete |
+| ------ | ------ | ---- | ------ | ------ |
+| Products | `products:create` | `products:read` | `products:update` | `products:delete` |
+| Categories | `category:create` | `category:read` | `category:update` | `category:delete` |
+| Inventory | `inventory:create` | `inventory:read` | `inventory:update` | `inventory:delete` |
+| Sales | `sales:create` | `sales:read` | `sales:update` | `sales:delete` |
+| Customers | `customers:create` | `customers:read` | `customers:update` | `customers:delete` |
+| Branches | `branches:create` | `branches:read` | `branches:update` | `branches:delete` |
+| Suppliers | `suppliers:create` | `suppliers:read` | `suppliers:update` | `suppliers:delete` |
+| Users | `users:create` | `users:read` | `users:update` | `users:delete` |
+| Roles | `roles:create` | `roles:read` | `roles:update` | `roles:delete` |
+| Payments | `payments:create` | `payments:read` | `payments:update` | `payments:delete` |
+| Settings | `settings:create` | `settings:read` | `settings:update` | `settings:delete` |
+| Purchases | `purchases:create` | `purchases:read` | `purchases:update` | `purchases:delete` |
+| Purchase Orders | `purchase_orders:create` | `purchase_orders:read` | `purchase_orders:update` | `purchase_orders:delete` |
+| Transfers | `transfers:create` | `transfers:read` | `transfers:update` | `transfers:delete` |
+
 ## Role‑based access control (RBAC)
 
 1. Open **Masters → Manage Roles** from the sidebar.
