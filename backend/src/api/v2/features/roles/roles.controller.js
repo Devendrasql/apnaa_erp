@@ -37,6 +37,25 @@ class RolesController {
     } catch (e) { next(e); }
   }
 
+  async getFeatures(req, res, next) {
+    try {
+      const roleId = Number(req.params.id);
+      const data = await Service.getRoleFeatures(roleId);
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+
+  async updateFeatures(req, res, next) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+      const roleId = Number(req.params.id);
+      const features = req.body || {};
+      await Service.updateRoleFeatures(roleId, features);
+      res.json({ success: true, message: 'Role features updated' });
+    } catch (e) { next(e); }
+  }
+
   async update(req, res, next) {
     try {
       const errors = validationResult(req);

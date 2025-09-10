@@ -447,6 +447,8 @@ export const api = {
   updateRole: (id, data) => axios.put(`${API_PREFIX}/roles/${id}`, data),
   getAllPermissions: () => axios.get(`${API_PREFIX}/roles/permissions`),
   createPermission: (payload) => axios.post(`${API_PREFIX}/roles/permissions`, payload),
+  getRoleFeatures: (id) => axios.get(`${API_PREFIX}/roles/${id}/features`),
+  updateRoleFeatures: (id, data) => axios.put(`${API_PREFIX}/roles/${id}/features`, data),
 
   // ABAC policies
   getAbacPolicies: () => axios.get(`${API_PREFIX}/abac/policies`),

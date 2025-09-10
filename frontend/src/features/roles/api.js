@@ -4,6 +4,8 @@ import {
   updateRole as updateRoleSvc,
   getAllPermissions as listPermissionsSvc,
   createPermission as createPermissionSvc,
+  getRoleFeatures as getRoleFeaturesSvc,
+  updateRoleFeatures as updateRoleFeaturesSvc,
 } from '@shared/api';
 
 export const listRoles = (params) => getAllRolesSvc(params);
@@ -11,4 +13,6 @@ export const getRoleById = (id) => getRoleByIdSvc(id);
 export const updateRole = (id, payload) => updateRoleSvc(id, payload);
 export const listPermissions = () => listPermissionsSvc();
 export const createPermission = (payload) => createPermissionSvc(payload);
+export const getRoleFeatures = (id) => getRoleFeaturesSvc(id);
+export const updateRoleFeatures = (id, payload) => updateRoleFeaturesSvc(id, payload);
 

@@ -27,4 +27,9 @@ router.put('/:id', abacEnforce({ anyPermissions: ['roles:manage'] }), validate([
   body('permissions').isArray().withMessage('permissions must be an array'),
 ]), Controller.update);
 
+router.get('/:id/features', abacEnforce({ anyPermissions: ['roles:read', 'roles:manage'] }),
+  validate([param('id').isInt({ min: 1 })]), Controller.getFeatures);
+router.put('/:id/features', abacEnforce({ anyPermissions: ['roles:manage'] }),
+  validate([param('id').isInt({ min: 1 })]), Controller.updateFeatures);
+
 module.exports = router;
