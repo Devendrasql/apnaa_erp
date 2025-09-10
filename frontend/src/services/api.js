@@ -599,6 +599,8 @@ export const getRoleById = api.getRoleById;
 export const updateRole = api.updateRole;
 export const getAllPermissions = api.getAllPermissions;
 export const createPermission = api.createPermission;
+export const getRoleFeatures = api.getRoleFeatures;
+export const updateRoleFeatures = api.updateRoleFeatures;
 
 // UI helpers (menus / permissions / features)
 export const getUIMenus = () => axios.get(`${API_PREFIX}/ui/menus`);
