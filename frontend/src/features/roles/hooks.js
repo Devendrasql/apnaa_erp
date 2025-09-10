@@ -5,9 +5,8 @@ import {
   updateRole,
   listPermissions,
   createPermission,
-  getRoleFeatures,
-  updateRoleFeatures,
 } from './api';
+import { getRoleFeatures, updateRoleFeatures } from '@shared/api';
 
 export function useRoles(params) {
   return useQuery(['roles', params], () => listRoles(params).then(r => r.data?.data ?? r.data));
